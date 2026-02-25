@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { createPaymentOrder, verifyPayment, checkPaymentStatus } from '../services/api';
+import toast from 'react-hot-toast';
+
+export default function PaymentPage() {
+  const [searchParams] = useSearchParams();
+  const applicant_id = searchParams.get('applicant_id');
+  
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank while checking
+
+  // --- THE NEW AUTO-CHECK LOGIC ---
+  React.useEffect(() => {
+    if (!applicant_id) {
+      setPageLoading(false);
+      return;
+    }
+    
+    checkPaymentStatus(applicant_id)
+      .then(res => {
+        // If the backend says they already paid, flip the screen to success instantly!
+        if (res.isPaid) {
+          setIsPaid(true);
+        }
+      })
+      .catch(err => console.error("Could not verify status on load", err))
+      .finally(() => setPageLoading(false)); // Hide the loading screen
+  }, [applicant_id]);
+
+  const handlePayment = async () => {
+    if (isPaid) return; 
+
+    setLoading(true);
+    try {
+      if (!window.Razorpay) {
+        toast.error("Razorpay SDK failed to load. Please check your internet connection.");
+        setLoading(false);
+        return;
+      }
+
+      const orderRes = await createPaymentOrder(applicant_id);
+      const { order_id, amount, currency, key_id } = orderRes.data;
+
+      const options = {
+        key: key_id, 
+        amount: amount,
+        currency: currency,
+        name: "Maharashtra Mandal",
+        description: "Lifetime Membership Fee",
+        order_id: order_id,
+        theme: { color: "#ea580c" }, 
+        
+        handler: async function (response) {
+          setVerifying(true);
+          try {
+            const verification = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            
+            toast.success("Payment Verified Successfully! (भुगतान सफलतापूर्वक सत्यापित!)");
+            setIsPaid(true); 
+
+          } catch (err) {
+            toast.error(err.response?.data?.message || "Payment verification failed.");
+          } finally {
+            setVerifying(false);
+          }
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response) {
+        toast.error(`Payment Failed: ${response.error.description}`);
+      });
+      
+      rzp.open();
+
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to initiate payment.');
+      if (error.response?.status === 400 && error.response?.data?.message?.toLowerCase().includes("paid")) {
+        setIsPaid(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!applicant_id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center border-t-8 border-red-500 max-w-md w-full">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">अमान्य लिंक <br/>(Invalid Link)</h2>
+          <p className="text-gray-600">यह भुगतान लिंक टूटा हुआ है या इसमें आवेदक आईडी गायब है।<br/>(This payment link is broken or missing the applicant ID.)</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
+        <h3 className="text-xl font-bold text-gray-700">भुगतान स्थिति की जाँच की जा रही है...</h3>
+        <p className="text-gray-500 text-sm mt-1">(Checking payment status...)</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center font-sans">
+      <div className="max-w-md w-full bg-white shadow-2xl rounded-xl overflow-hidden border-t-8 border-orange-600 relative">
+        
+        {/* Verification Overlay Overlay */}
+        {verifying && (
+          <div className="absolute inset-0 bg-white/90 z-10 flex flex-col items-center justify-center backdrop-blur-sm">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
+            <h3 className="text-xl font-bold text-gray-800 text-center">भुगतान सत्यापित किया जा रहा है... <br/>(Verifying Payment...)</h3>
+            <p className="text-gray-600 text-sm mt-2 font-medium">कृपया इस विंडो को बंद न करें। <br/>(Please do not close this window.)</p>
+          </div>
+        )}
+
+        {/* --- SCENARIO 1: PAYMENT SUCCESSFUL UI --- */}
+        {isPaid ? (
+          <div className="p-8 text-center">
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
+              <svg className="h-12 w-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">भुगतान सफल!<br/><span className="text-2xl">(Payment Successful!)</span></h2>
+            <p className="text-gray-600 mb-6 mt-4">
+              धन्यवाद! आपका आजीवन सदस्यता शुल्क प्राप्त हो गया है। अब आप आधिकारिक तौर पर महाराष्ट्र मंडल के सदस्य हैं।
+              <br/><br/>
+              <span className="text-sm">(Thank you! Your Lifetime Membership fee has been received. You are now officially a member of Maharashtra Mandal.)</span>
+            </p>
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8 text-left">
+              <p className="text-sm text-gray-500">लेनदेन की स्थिति (Status): <span className="font-bold text-green-600 float-right">सत्यापित (Verified)</span></p>
+              <div className="border-t border-gray-200 my-2"></div>
+              <p className="text-sm text-gray-500">भुगतान की गई राशि (Amount): <span className="font-bold text-gray-900 float-right">₹1510.00</span></p>
+            </div>
+            <Link 
+              to="/" 
+              className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
+            >
+              मुख्य पृष्ठ पर लौटें (Return to Home)
+            </Link>
+          </div>
+        ) : (
+          
+        /* --- SCENARIO 2: PENDING PAYMENT UI --- */
+          <div className="p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-extrabold text-gray-900">सदस्यता पक्की करें <br/>(Finalize Membership)</h2>
+              <p className="text-gray-500 mt-2 text-sm">अपना खाता सक्रिय करने के लिए भुगतान पूरा करें।<br/>(Complete your payment to activate your account.)</p>
+            </div>
+
+            {/* Price Breakdown Card */}
+            <div className="bg-orange-50/50 rounded-lg p-6 border border-orange-100 mb-8">
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-orange-200 pb-2">
+                ऑर्डर सारांश (Order Summary)
+              </h3>
+              
+              <div className="flex justify-between mb-3 text-gray-600 text-sm">
+                <span>आजीवन सदस्यता शुल्क<br/>(Lifetime Fee)</span>
+                <span className="font-medium text-gray-900">₹1500.00</span>
+              </div>
+              
+              <div className="flex justify-between mb-4 text-gray-600 text-sm">
+                <span>पंजीकरण शुल्क<br/>(Admin Fee)</span>
+                <span className="font-medium text-gray-900">₹10.00</span>
+              </div>
+              
+              <div className="flex justify-between items-center border-t border-orange-200 pt-4 mt-2">
+                <span className="text-lg font-bold text-gray-900">कुल राशि<br/><span className="text-sm">(Total Amount)</span></span>
+                <span className="text-2xl font-black text-orange-600">₹1510.00</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={handlePayment} 
+              disabled={loading}
+              className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg text-lg font-extrabold text-white transition-all 
+                ${loading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 hover:shadow-xl"}
+              `}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Connecting...
+                </span>
+              ) : (
+                "₹1510 का भुगतान करें (Pay Now)"
+              )}
+            </button>
+            
+            <p className="text-center text-xs text-gray-500 mt-4 flex flex-col items-center justify-center gap-1">
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg>
+                Secure Payment via Razorpay
+              </span>
+              <span>(रेज़रपे के माध्यम से सुरक्षित भुगतान)</span>
+            </p>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
