@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAllApplicants, fetchApplicantById } from '../services/api';
+import { fetchAllApplicants, fetchApplicantById,promoteApplicant } from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -8,6 +8,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [registrationNumber, setRegistrationNumber] = useState('');
+  const [isPromoting, setIsPromoting] = useState(false);
   const navigate = useNavigate();
 
   const MINIO_BASE_URL = 'http://localhost:9000'; 
@@ -53,10 +55,31 @@ export default function AdminDashboard() {
     window.print();
   };
 
+  const handlePromote = async () => {
+    if (!registrationNumber.trim()) {
+      toast.error('कृपया पंजीकरण संख्या दर्ज करें (Please enter registration number).');
+      return;
+    }
+    setIsPromoting(true);
+    try {
+      await promoteApplicant(selectedApplicant.id, registrationNumber);
+      toast.success('सदस्य को सफलतापूर्वक प्रमोट किया गया! (Successfully promoted to member)');
+      setRegistrationNumber('');
+      setSelectedApplicant(null); // Close modal
+      loadApplicants(); // Refresh the table
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'प्रमोट करने में विफल (Failed to promote).');
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
-    if (status === 'PAYMENT_COMPLETED') return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold border border-green-200">शुल्क प्राप्त (Active)</span>;
+   if (status === 'MEMBER') return <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">आजीवन सदस्य (Official Member)</span>;
+    if (status === 'PAYMENT_COMPLETED') return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold border border-green-200">शुल्क प्राप्त (Ready to Promote)</span>;
     if (status?.includes('REJECTED')) return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold border border-red-200">अस्वीकृत (Rejected)</span>;
     if (status?.includes('PAYMENT_PENDING')) return <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold border border-orange-200">भुगतान लंबित (Payment Pending)</span>;
+    if (status?.includes('APPROVED_BY')) return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold border border-blue-200">मंजूर (Approved - Interim)</span>;
     if (status?.includes('PENDING')) return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold border border-yellow-200">अनुमोदन लंबित (Pending Approval)</span>;
     return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-bold">{status || 'UNKNOWN'}</span>;
   };
@@ -150,7 +173,10 @@ export default function AdminDashboard() {
             <div className="hidden print:block text-center border-b-2 border-gray-800 pb-4 mb-6 mt-4">
               <h1 className="text-3xl font-extrabold text-gray-900">महाराष्ट्र मंडळ, रायपूर, छत्तीसगढ़</h1>
               <h2 className="text-xl font-bold mt-2">सभासद आवेदन पत्र (आजीवन)</h2>
-              <p className="text-sm text-gray-600 mt-1">Ref ID: {selectedApplicant.id}</p>
+              
+              {selectedApplicant.registration_number && (
+                <p className="text-lg font-bold text-black mt-2">पंजीकरण संख्या: {selectedApplicant.registration_number}</p>
+              )}
             </div>
 
             {/* Sticky Header (Hidden during print) */}
@@ -158,6 +184,7 @@ export default function AdminDashboard() {
               <div>
                 <h2 className="text-xl font-extrabold text-gray-900">आवेदक विवरण (Applicant Details)</h2>
                 <p className="text-sm text-indigo-600 font-semibold mt-1">Ref ID: {selectedApplicant.id.substring(0, 8).toUpperCase()}</p>
+
               </div>
               
               <div className="flex items-center space-x-2">
@@ -205,11 +232,32 @@ export default function AdminDashboard() {
                  </div>
               </div>
 
+              {/* --- NEW: SHOW REGISTRATION NUMBER IF IT EXISTS --- */}
+              {selectedApplicant.registration_number && (
+                <div className="md:col-span-2 bg-green-50 p-4 rounded-xl border border-green-300 mb-6 flex items-center justify-between print:border-black print:bg-transparent">
+                  <div>
+                    <p className="text-sm font-bold text-green-800 uppercase tracking-wider print:text-black">
+                      पंजीकरण संख्या (Registration Number)
+                    </p>
+                    <p className="text-2xl font-black text-green-900 mt-1 print:text-black">
+                      {selectedApplicant.registration_number}
+                    </p>
+                  </div>
+                  <div className="hidden sm:block">
+                    <span className="px-4 py-1 bg-green-200 text-green-800 rounded-full text-sm font-bold print:border print:border-black print:bg-transparent print:text-black">
+                      Official Member
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 print:gap-y-6">
                 <DetailItem label="पूर्ण नाम (Full Name)" value={selectedApplicant.full_name} />
                 <DetailItem label="पिता/पति का नाम (Father/Husband Name)" value={selectedApplicant.father_or_husband_name} />
+                <DetailItem label="लिंग (Gender)" value={selectedApplicant.gender} />
                 <DetailItem label="जन्म तिथि (Date of Birth)" value={selectedApplicant.date_of_birth} />
                 <DetailItem label="विवाह तिथि (Marriage Date)" value={selectedApplicant.marriage_date || 'N/A'} />
+                <DetailItem label="आधार कार्ड (Aadhar Card)" value={selectedApplicant.aadhar_number} />
                 <DetailItem label="रक्त गट (Blood Group)" value={selectedApplicant.blood_group || 'N/A'} />
                 <DetailItem label="सदस्यता (Membership Type)" value={selectedApplicant.membership_type} />
                 <DetailItem label="शैक्षणिक योग्यता (Education)" value={selectedApplicant.education} />
@@ -220,6 +268,35 @@ export default function AdminDashboard() {
                 <div className="md:col-span-2"><DetailItem label="स्थाई पता (Permanent Address)" value={selectedApplicant.permanent_address} /></div>
                 {selectedApplicant.office_address && <div className="md:col-span-2"><DetailItem label="कार्यालय का पता (Office Address)" value={selectedApplicant.office_address} /></div>}
               </div>
+
+              {/* --- NEW: PROMOTE TO MEMBER SECTION --- */}
+              {selectedApplicant.status === 'PAYMENT_COMPLETED' && (
+                <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200 print:hidden shadow-inner">
+                  <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    सदस्य म्हणून बढती द्या (Promote to Official Member)
+                  </h3>
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+                    <div className="flex-1 w-full">
+                      <label className="block text-sm font-bold text-green-800 mb-1">पंजीकरण संख्या (Assign Registration Number) *</label>
+                      <input 
+                        type="text" 
+                        value={registrationNumber}
+                        onChange={(e) => setRegistrationNumber(e.target.value)}
+                        className="w-full px-4 py-2 border border-green-300 rounded-md focus:ring-green-500 bg-white shadow-sm"
+                        placeholder="Ex: MM-2026-001"
+                      />
+                    </div>
+                    <button 
+                      onClick={handlePromote}
+                      disabled={isPromoting}
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50"
+                    >
+                      {isPromoting ? 'प्रतीक्षा करा...' : 'Promote Member'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Signature Section */}
               <div className="mt-12 border-t border-gray-300 pt-6 flex justify-between items-end print:mt-16">

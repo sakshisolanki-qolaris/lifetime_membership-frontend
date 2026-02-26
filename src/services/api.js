@@ -79,3 +79,19 @@ export const fetchApplicantById = async (id) => {
   });
   return response.data;
 };
+
+export const resubmitApplication = async (id, formData) => {
+  const response = await apiClient.put(`/applicants/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const promoteApplicant = async (applicant_id, registration_number) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.post('/admins/promote', 
+    { applicant_id, registration_number },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};

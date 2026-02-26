@@ -116,19 +116,35 @@ export default function ApprovalPage() {
                 <p className="text-sm text-gray-500 font-medium mb-1">Father/Husband Name</p>
                 <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.father_or_husband_name}</p>
               </div>
+              
+                   <div>
+                <p className="text-sm text-gray-500 font-medium mb-1">Gender</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.gender || "N/A"}</p>
+             
+             </div>
+
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Date of Birth</p>
                 <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.date_of_birth}</p>
               </div>
+
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Blood Group</p>
                 <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.blood_group || "N/A"}</p>
               </div>
+
+
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Marriage Date</p>
                 <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.marriage_date || "N/A"}</p>
               </div>
-            </div>
+        
+         
+              <div>
+                <p className="text-sm text-gray-500 font-medium mb-1">Aadhar Card</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.aadhar_number || "N/A"}</p>
+              </div>
+</div>
           </div>
 
           {/* Section 2: Contact & Address */}

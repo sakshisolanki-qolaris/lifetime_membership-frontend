@@ -7,6 +7,7 @@ import SuccessPage from './pages/SuccessPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import EditApplication from './pages/EditApplication';
 function App() {
   return (
     <BrowserRouter>
@@ -25,6 +26,8 @@ function App() {
           
           {/* Final Payment Route */}
           <Route path="/payment" element={<PaymentPage />} />
+
+          <Route path="/edit-application/:id" element={<EditApplication />} />
 
           {/* --- ADMIN SECURE ROUTES --- */}
           <Route path="/admin/login" element={<AdminLogin />} />
