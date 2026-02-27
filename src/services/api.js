@@ -95,3 +95,51 @@ export const promoteApplicant = async (applicant_id, registration_number) => {
   );
   return response.data;
 };
+
+export const fetchAllMembers = async () => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.get('/admins/all-members', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+
+export const toggleMemberStatus = async (id) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.patch(`/admins/members/${id}/status`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+
+//exceptional
+export const downloadIdCard = async (id) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.get(`/admins/members/${id}/id-card`, {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob' // Required for handling binary files
+  });
+  return response.data;
+};
+
+export const updateMembershipFee = async (amount) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.patch('/admins/settings/update-fee', { amount }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+
+export const fetchCurrentFee = async () => {
+  try {
+    const response = await apiClient.get('/payments/fee');
+    console.log("Fee API Response:", response.data);
+    return response.data;
+  } catch (err) {
+    console.error("Fee API Error:", err);
+    return { fee: 1510 }; // Fallback based on your backend default
+  }
+};

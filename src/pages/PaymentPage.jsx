@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { createPaymentOrder, verifyPayment, checkPaymentStatus } from '../services/api';
+import { createPaymentOrder, verifyPayment, checkPaymentStatus, fetchCurrentFee } from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function PaymentPage() {
@@ -10,24 +10,42 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
-const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank while checking
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // --- DYNAMIC FEE STATE ---
+  // Defaulting to 1510 as per your backend fallback
+  const [feeAmount, setFeeAmount] = useState(1510); 
 
   // --- THE NEW AUTO-CHECK LOGIC ---
-  React.useEffect(() => {
+  useEffect(() => {
     if (!applicant_id) {
       setPageLoading(false);
       return;
     }
     
-    checkPaymentStatus(applicant_id)
-      .then(res => {
-        // If the backend says they already paid, flip the screen to success instantly!
-        if (res.isPaid) {
+    const initializePage = async () => {
+      try {
+        // 1. Fetch Dynamic Fee from Backend Route
+        const feeRes = await fetchCurrentFee();
+        if (feeRes?.data?.fee) {
+          setFeeAmount(feeRes.data.fee); 
+        } else if (feeRes?.fee) {
+          setFeeAmount(feeRes.fee);      
+        }
+
+        // 2. Check if already paid
+        const statusRes = await checkPaymentStatus(applicant_id);
+        if (statusRes.isPaid) {
           setIsPaid(true);
         }
-      })
-      .catch(err => console.error("Could not verify status on load", err))
-      .finally(() => setPageLoading(false)); // Hide the loading screen
+      } catch (err) {
+        console.error("Could not verify status/fee on load", err);
+      } finally {
+        setPageLoading(false); // Hide the loading screen
+      }
+    };
+
+    initializePage();
   }, [applicant_id]);
 
   const handlePayment = async () => {
@@ -56,7 +74,7 @@ const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank 
         handler: async function (response) {
           setVerifying(true);
           try {
-            const verification = await verifyPayment({
+            await verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -106,8 +124,8 @@ const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank 
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
-        <h3 className="text-xl font-bold text-gray-700">भुगतान स्थिति की जाँच की जा रही है...</h3>
-        <p className="text-gray-500 text-sm mt-1">(Checking payment status...)</p>
+        <h3 className="text-xl font-bold text-gray-700">जानकारी लोड की जा रही है...</h3>
+        <p className="text-gray-500 text-sm mt-1">(Loading information...)</p>
       </div>
     );
   }
@@ -142,7 +160,8 @@ const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank 
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8 text-left">
               <p className="text-sm text-gray-500">लेनदेन की स्थिति (Status): <span className="font-bold text-green-600 float-right">सत्यापित (Verified)</span></p>
               <div className="border-t border-gray-200 my-2"></div>
-              <p className="text-sm text-gray-500">भुगतान की गई राशि (Amount): <span className="font-bold text-gray-900 float-right">₹1510.00</span></p>
+              {/* Show dynamic amount */}
+              <p className="text-sm text-gray-500">भुगतान की गई राशि (Amount): <span className="font-bold text-gray-900 float-right">₹{feeAmount}.00</span></p>
             </div>
             <Link 
               to="/" 
@@ -166,19 +185,10 @@ const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank 
                 ऑर्डर सारांश (Order Summary)
               </h3>
               
-              <div className="flex justify-between mb-3 text-gray-600 text-sm">
-                <span>आजीवन सदस्यता शुल्क<br/>(Lifetime Fee)</span>
-                <span className="font-medium text-gray-900">₹1500.00</span>
-              </div>
-              
-              <div className="flex justify-between mb-4 text-gray-600 text-sm">
-                <span>पंजीकरण शुल्क<br/>(Admin Fee)</span>
-                <span className="font-medium text-gray-900">₹10.00</span>
-              </div>
-              
-              <div className="flex justify-between items-center border-t border-orange-200 pt-4 mt-2">
+              <div className="flex justify-between items-center pt-2">
                 <span className="text-lg font-bold text-gray-900">कुल राशि<br/><span className="text-sm">(Total Amount)</span></span>
-                <span className="text-2xl font-black text-orange-600">₹1510.00</span>
+                {/* Dynamically reflect fetched amount */}
+                <span className="text-2xl font-black text-orange-600">₹{feeAmount}.00</span>
               </div>
             </div>
 
@@ -198,7 +208,7 @@ const [pageLoading, setPageLoading] = useState(true); // <-- Keeps screen blank 
                   Connecting...
                 </span>
               ) : (
-                "₹1510 का भुगतान करें (Pay Now)"
+                `₹${feeAmount} का भुगतान करें (Pay Now)`
               )}
             </button>
             
