@@ -27,6 +27,8 @@ function App() {
           {/* Final Payment Route */}
           <Route path="/payment" element={<PaymentPage />} />
 
+          <Route path="/recheck-application/:applicant_id" element={<PaymentPage />} />
+
           <Route path="/edit-application/:id" element={<EditApplication />} />
 
           {/* --- ADMIN SECURE ROUTES --- */}

@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { createPaymentOrder, verifyPayment, checkPaymentStatus, fetchCurrentFee } from '../services/api';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
+import { createPaymentOrder, verifyPayment, checkPaymentStatus, fetchCurrentFee, fetchApplicantById } from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function PaymentPage() {
   const [searchParams] = useSearchParams();
-  const applicant_id = searchParams.get('applicant_id');
+  const { applicant_id: paramId } = useParams();
+  const applicant_id = paramId || searchParams.get('applicant_id');
   
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
-  // --- DYNAMIC FEE STATE ---
-  // Defaulting to 1510 as per your backend fallback
   const [feeAmount, setFeeAmount] = useState(1510); 
+  
+  // --- NEW STATES FOR THE 2-STEP FLOW ---
+  const [step, setStep] = useState('review'); // 'review' or 'payment'
+  const [applicantDetails, setApplicantDetails] = useState(null);
 
-  // --- THE NEW AUTO-CHECK LOGIC ---
   useEffect(() => {
     if (!applicant_id) {
       setPageLoading(false);
@@ -25,23 +27,24 @@ export default function PaymentPage() {
     
     const initializePage = async () => {
       try {
-        // 1. Fetch Dynamic Fee from Backend Route
-        const feeRes = await fetchCurrentFee();
-        if (feeRes?.data?.fee) {
-          setFeeAmount(feeRes.data.fee); 
-        } else if (feeRes?.fee) {
-          setFeeAmount(feeRes.fee);      
-        }
+        // 1. Fetch Applicant Details for the Review Step
+        const appRes = await fetchApplicantById(applicant_id);
+        setApplicantDetails(appRes.data || appRes);
 
-        // 2. Check if already paid
+        // 2. Fetch Dynamic Fee
+        const feeRes = await fetchCurrentFee();
+        if (feeRes?.data?.fee) setFeeAmount(feeRes.data.fee); 
+        else if (feeRes?.fee) setFeeAmount(feeRes.fee);      
+
+        // 3. Check if already paid
         const statusRes = await checkPaymentStatus(applicant_id);
-        if (statusRes.isPaid) {
-          setIsPaid(true);
-        }
+        if (statusRes.isPaid) setIsPaid(true);
+
       } catch (err) {
-        console.error("Could not verify status/fee on load", err);
+        console.error("Could not load data", err);
+        toast.error("Failed to load application details.");
       } finally {
-        setPageLoading(false); // Hide the loading screen
+        setPageLoading(false);
       }
     };
 
@@ -92,11 +95,9 @@ export default function PaymentPage() {
       };
 
       const rzp = new window.Razorpay(options);
-      
       rzp.on('payment.failed', function (response) {
         toast.error(`Payment Failed: ${response.error.description}`);
       });
-      
       rzp.open();
 
     } catch (error) {
@@ -114,7 +115,7 @@ export default function PaymentPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
         <div className="bg-white p-8 rounded-lg shadow-lg text-center border-t-8 border-red-500 max-w-md w-full">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">अमान्य लिंक <br/>(Invalid Link)</h2>
-          <p className="text-gray-600">यह भुगतान लिंक टूटा हुआ है या इसमें आवेदक आईडी गायब है।<br/>(This payment link is broken or missing the applicant ID.)</p>
+          <p className="text-gray-600">यह भुगतान लिंक टूटा हुआ है या इसमें आवेदक आईडी गायब है।</p>
         </div>
       </div>
     );
@@ -130,11 +131,18 @@ export default function PaymentPage() {
     );
   }
 
+  // A tiny helper component just for rendering the read-only boxes
+  const DetailBox = ({ label, value }) => (
+    <div className="bg-orange-50 p-3 rounded-md border border-orange-100">
+      <p className="text-xs font-bold text-orange-600 mb-1 uppercase tracking-wide">{label}</p>
+      <p className="text-sm font-semibold text-gray-900">{value || 'N/A'}</p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center font-sans">
-      <div className="max-w-md w-full bg-white shadow-2xl rounded-xl overflow-hidden border-t-8 border-orange-600 relative">
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-start justify-center font-sans">
+      <div className="max-w-2xl w-full bg-white shadow-2xl rounded-xl overflow-hidden border-t-8 border-orange-600 relative">
         
-        {/* Verification Overlay Overlay */}
         {verifying && (
           <div className="absolute inset-0 bg-white/90 z-10 flex flex-col items-center justify-center backdrop-blur-sm">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
@@ -143,7 +151,6 @@ export default function PaymentPage() {
           </div>
         )}
 
-        {/* --- SCENARIO 1: PAYMENT SUCCESSFUL UI --- */}
         {isPaid ? (
           <div className="p-8 text-center">
             <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
@@ -154,74 +161,125 @@ export default function PaymentPage() {
             <h2 className="text-3xl font-extrabold text-gray-900 mb-2">भुगतान सफल!<br/><span className="text-2xl">(Payment Successful!)</span></h2>
             <p className="text-gray-600 mb-6 mt-4">
               धन्यवाद! आपका आजीवन सदस्यता शुल्क प्राप्त हो गया है। अब आप आधिकारिक तौर पर महाराष्ट्र मंडल के सदस्य हैं।
-              <br/><br/>
-              <span className="text-sm">(Thank you! Your Lifetime Membership fee has been received. You are now officially a member of Maharashtra Mandal.)</span>
             </p>
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8 text-left">
               <p className="text-sm text-gray-500">लेनदेन की स्थिति (Status): <span className="font-bold text-green-600 float-right">सत्यापित (Verified)</span></p>
               <div className="border-t border-gray-200 my-2"></div>
-              {/* Show dynamic amount */}
               <p className="text-sm text-gray-500">भुगतान की गई राशि (Amount): <span className="font-bold text-gray-900 float-right">₹{feeAmount}.00</span></p>
             </div>
-            <Link 
-              to="/" 
-              className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
-            >
+            <Link to="/" className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors">
               मुख्य पृष्ठ पर लौटें (Return to Home)
             </Link>
           </div>
         ) : (
-          
-        /* --- SCENARIO 2: PENDING PAYMENT UI --- */
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-extrabold text-gray-900">सदस्यता पक्की करें <br/>(Finalize Membership)</h2>
-              <p className="text-gray-500 mt-2 text-sm">अपना खाता सक्रिय करने के लिए भुगतान पूरा करें।<br/>(Complete your payment to activate your account.)</p>
-            </div>
+          <>
+            {/* --- STEP 1: REVIEW FORM --- */}
+            {step === 'review' && (
+              <div className="p-6 sm:p-8 animate-in fade-in">
+                <div className="text-center mb-6 border-b border-gray-200 pb-4">
+                  <h2 className="text-2xl font-extrabold text-gray-900">अपने विवरण की जाँच करें</h2>
+                  <p className="text-gray-500 mt-1 text-sm font-semibold uppercase tracking-wider">Step 1: Review Your Application</p>
+                </div>
 
-            {/* Price Breakdown Card */}
-            <div className="bg-orange-50/50 rounded-lg p-6 border border-orange-100 mb-8">
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-orange-200 pb-2">
-                ऑर्डर सारांश (Order Summary)
-              </h3>
-              
-              <div className="flex justify-between items-center pt-2">
-                <span className="text-lg font-bold text-gray-900">कुल राशि<br/><span className="text-sm">(Total Amount)</span></span>
-                {/* Dynamically reflect fetched amount */}
-                <span className="text-2xl font-black text-orange-600">₹{feeAmount}.00</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                  <div className="sm:col-span-2"><DetailBox label="पूर्ण नाम (Full Name)" value={applicantDetails?.full_name} /></div>
+                  <DetailBox label="पिता/पति का नाम (Father/Husband)" value={applicantDetails?.father_or_husband_name} />
+                  <DetailBox label="लिंग (Gender)" value={applicantDetails?.gender} />
+                  <DetailBox label="मोबाईल (Mobile Number)" value={applicantDetails?.mobile_number} />
+                  <DetailBox label="ई-मेल (Email)" value={applicantDetails?.email} />
+                  <DetailBox label="जन्म तिथि (DOB)" value={applicantDetails?.date_of_birth} />
+                    <DetailBox
+                        label="विवाह तिथि (Marriage Date)"
+                        value={applicantDetails?.marriage_date || "N/A"}
+                      />
+                        <DetailBox
+                        label="रक्त गट (Blood Group)"
+                        value={applicantDetails?.blood_group || "N/A"}
+                      />
+                  <DetailBox label="शैक्षणिक योग्यता (Education)" value={applicantDetails?.education} />
+                  <DetailBox label="वर्तमान पता (Current Address)" value={applicantDetails?.current_address} 
+                 /> 
+                        <DetailBox
+                          label="स्थाई पता (Permanent Address)"
+                          value={applicantDetails?.permanent_address}
+                        />      
+                     
+                      {applicantDetails?.office_address && (
+                        
+                          <DetailBox
+                            label="कार्यालय का पता (Office Address)"
+                            value={applicantDetails?.office_address}
+                          />
+                  
+                      )}
+                      </div>
+                <button 
+                  onClick={() => setStep('payment')}
+                  className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg text-lg font-extrabold text-white bg-orange-600 hover:bg-orange-700 transition-all"
+                >
+                  विवरण सही हैं - भुगतान के लिए आगे बढ़ें (Proceed to Pay)
+                </button>
+                <p className="text-center text-xs text-red-500 mt-4 font-medium">
+                  यदि ऊपर दिए गए विवरण में कोई गलती है, तो भुगतान न करें और कार्यालय से संपर्क करें। <br/>
+                  (If there is any mistake above, do not pay and contact the office.)
+                </p>
               </div>
-            </div>
+            )}
 
-            <button 
-              onClick={handlePayment} 
-              disabled={loading}
-              className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg text-lg font-extrabold text-white transition-all 
-                ${loading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-600 hover:bg-orange-700 hover:shadow-xl"}
-              `}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Connecting...
-                </span>
-              ) : (
-                `₹${feeAmount} का भुगतान करें (Pay Now)`
-              )}
-            </button>
-            
-            <p className="text-center text-xs text-gray-500 mt-4 flex flex-col items-center justify-center gap-1">
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg>
-                Secure Payment via Razorpay
-              </span>
-              <span>(रेज़रपे के माध्यम से सुरक्षित भुगतान)</span>
-            </p>
-          </div>
+            {/* --- STEP 2: PAYMENT SCREEN --- */}
+            {step === 'payment' && (
+              <div className="p-6 sm:p-8 animate-in slide-in-from-right-8 fade-in">
+                
+                {/* Back Button */}
+                <button onClick={() => setStep('review')} className="text-sm font-bold text-gray-500 hover:text-orange-600 mb-6 flex items-center gap-1 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                  वापस जाएँ (Back to Review)
+                </button>
+
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-extrabold text-gray-900">सदस्यता पक्की करें</h2>
+                  <p className="text-gray-500 mt-1 text-sm font-semibold uppercase tracking-wider">Step 2: Finalize Membership Payment</p>
+                </div>
+
+                <div className="bg-orange-50/50 rounded-lg p-6 border border-orange-100 mb-8">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-orange-200 pb-2">
+                    ऑर्डर सारांश (Order Summary)
+                  </h3>
+                  <div className="flex justify-between items-center mb-2">
+                     <span className="text-gray-600 text-sm font-medium">Applicant Name</span>
+                     <span className="text-gray-900 font-bold">{applicantDetails?.full_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4 pb-4 border-b border-orange-200 border-dashed">
+                     <span className="text-gray-600 text-sm font-medium">Membership Type</span>
+                     <span className="text-gray-900 font-bold">Lifetime (आजीवन)</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-lg font-bold text-gray-900">कुल राशि<br/><span className="text-sm">(Total Amount)</span></span>
+                    <span className="text-3xl font-black text-orange-600">₹{feeAmount}.00</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handlePayment} 
+                  disabled={loading}
+                  className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg text-lg font-extrabold text-white transition-all 
+                    ${loading ? "bg-orange-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 hover:shadow-xl"}
+                  `}
+                >
+                  {loading ? "Connecting to Bank..." : `₹${feeAmount} का भुगतान करें (Pay Now)`}
+                </button>
+                
+                <p className="text-center text-xs text-gray-500 mt-4 flex flex-col items-center justify-center gap-1">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg>
+                    Secure Payment via Razorpay
+                  </span>
+                </p>
+              </div>
+            )}
+          </>
         )}
-
       </div>
     </div>
   );

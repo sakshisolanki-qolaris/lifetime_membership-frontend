@@ -143,3 +143,22 @@ export const fetchCurrentFee = async () => {
     return { fee: 1510 }; // Fallback based on your backend default
   }
 };
+
+
+// Admin: Edit Applicant Details manually
+export const editApplicantByAdmin = async (id, updateData) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.put(`/admins/applicants/${id}/edit`, updateData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+// Admin: Approve or Reject Application
+export const reviewApplicantByAdmin = async (id, action) => {
+  const token = localStorage.getItem('adminToken');
+  const response = await apiClient.post(`/admins/applicants/${id}/review`, { action }, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
