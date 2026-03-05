@@ -10,6 +10,7 @@ import {
   updateMembershipFee,
   reviewApplicantByAdmin,
   editApplicantByAdmin,
+  fetchActiveRegions, // <-- ADD THIS IMPORT
 } from "../services/api";
 import toast from "react-hot-toast";
 
@@ -33,12 +34,14 @@ export default function AdminDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  
+  // <-- ADD REGION STATE
+  const [regions, setRegions] = useState([]);
 
   // NEW: Side-by-Side Image Viewer State
   const [previewImage, setPreviewImage] = useState(null);
-const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
+  const [isZoomed, setIsZoomed] = useState(false);
 
-  // <-- ADD THIS: Automatically reset zoom when switching images
   useEffect(() => {
     setIsZoomed(false);
   }, [previewImage]);
@@ -49,6 +52,21 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
     if (activeTab === "applicants") loadApplicants();
     else if (activeTab === "members") loadMembers();
   }, [activeTab]);
+
+  // <-- ADD EFFECT TO FETCH REGIONS
+  useEffect(() => {
+    const loadRegions = async () => {
+      try {
+        const result = await fetchActiveRegions();
+        if (result.success) {
+          setRegions(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to load regions:", error);
+      }
+    };
+    loadRegions();
+  }, []);
 
   const loadApplicants = async () => {
     setLoading(true);
@@ -91,7 +109,7 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
 
   const handleRowClick = async (app) => {
     setSelectedApplicant(app);
-    setPreviewImage(null); // Reset preview on new selection
+    setPreviewImage(null);
     setIsEditing(false);
     setLoadingDetails(true);
     try {
@@ -141,6 +159,8 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
       current_address: selectedApplicant.current_address || "",
       permanent_address: selectedApplicant.permanent_address || "",
       office_address: selectedApplicant.office_address || "",
+      is_from_raipur: selectedApplicant.is_from_raipur || false, // Ensure defaults
+      region: selectedApplicant.region || "", // Ensure defaults
     });
     setIsEditing(true);
   };
@@ -168,7 +188,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
         payloadToSave,
       );
       toast.success("Details updated successfully!");
-      // Merge new data with existing files to prevent photos from disappearing
       setSelectedApplicant((prev) => ({ ...prev, ...result.data }));
       setIsEditing(false);
       loadApplicants();
@@ -334,7 +353,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 sm:p-8 font-sans relative print:bg-white print:p-0">
-      {/* BACKGROUND CONTENT */}
       <div className="max-w-7xl mx-auto print:hidden">
         <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-md mb-6 border-t-4 border-orange-500">
           <div className="flex items-center space-x-4 mb-4 sm:mb-0">
@@ -585,10 +603,8 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
         </div>
       </div>
 
-      {/* --- MODAL SECTION WITH SIDE-BY-SIDE VIEWER --- */}
       {selectedApplicant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-sm transition-opacity print:static print:bg-transparent print:p-0">
-          {/* Main Modal Container: dynamically widens if an image is being previewed */}
           <div
             className={`bg-white rounded-2xl shadow-2xl w-full flex flex-col lg:flex-row ${previewImage ? "max-w-[95vw]" : "max-w-3xl"} max-h-[95vh] overflow-hidden border-t-8 border-orange-500 transition-all duration-300 print:max-h-none print:shadow-none print:border-none relative`}
           >
@@ -616,11 +632,8 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
               </div>
             )}
 
-          {/* --- LEFT SIDE: APPLICATION FORM --- */}
-            {/* Added print:overflow-visible to ensure the whole page prints, not just the scrollable area */}
             <div className={`flex-1 overflow-y-auto flex flex-col ${previewImage ? 'lg:border-r-2 lg:border-gray-200' : ''} print:block print:overflow-visible`}>
               
-              {/* Sticky Header (Hidden during print) */}
               <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-6 py-4 flex justify-between items-center z-10 print:hidden shadow-sm">
                 <div>
                   <h2 className="text-xl font-extrabold text-gray-900">आवेदक विवरण (Applicant Details)</h2>
@@ -628,9 +641,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                 </div>
                 <div className="flex items-center space-x-2">
                   
-
-
-                  {/* EDIT BUTTON */}
                   {!isEditing && selectedApplicant.status === 'PENDING_ADMIN_REVIEW' && (
                     <button onClick={startEditing} className="flex items-center space-x-2 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white px-4 py-2 rounded-lg font-bold transition-colors border border-orange-200">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -638,47 +648,36 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                     </button>
                   )}
 
-                   {/* 🖨️ PRINT BUTTON: Only shows when NOT editing and NO image is open */}
-                     <button 
-                  onClick={handlePrint}
-                  className="flex items-center space-x-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg font-bold transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                  <span>प्रिंट (Print)</span>
-                </button>
+                   {!isEditing && !previewImage && (<button 
+                    onClick={handlePrint}
+                    className="flex items-center space-x-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-4 py-2 rounded-lg font-bold transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    <span>प्रिंट (Print)</span>
+                  </button>)}
 
-                  {/* CLOSE BUTTON */}
                   <button onClick={() => { setSelectedApplicant(null); setPreviewImage(null); }} className="bg-red-50 text-red-600 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-colors" title="Close">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
               </div>
 
-              {/* 🖨️ THE BIG PRINT HEADER (Only shows on paper) */}
               <div className="hidden print:block text-center border-b-2 border-gray-800 pb-4 mt-6 mx-8">
                 <h1 className="text-3xl font-extrabold text-gray-900">महाराष्ट्र मंडळ, रायपूर, छत्तीसगढ़</h1>
                 <h2 className="text-xl font-bold mt-2 text-gray-800">सभासद आवेदन पत्र (आजीवन)</h2>
                 
-                {selectedApplicant.registration_number ? (
-                  <p className="text-lg font-bold text-black mt-2">पंजीकरण संख्या: {selectedApplicant.registration_number}</p>
-                ) : (
-                  <p className="text-sm font-semibold text-gray-600 mt-2">Ref ID: {selectedApplicant.id.substring(0, 8).toUpperCase()}</p>
-                )}
+
               </div>
 
-              {/* Form Body */}
               <div className="p-6 pt-0 print:pt-6">
                 
-                {/* Top Quick Details & Photo */}
                 <div className="flex flex-col md:flex-row justify-between items-start mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100 gap-4 print:bg-transparent print:border-none print:p-0 print:mb-8">
-                <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-3">
                     <div className="flex items-center flex-wrap gap-3 print:hidden">
                       <span className="text-gray-500 font-semibold text-sm">
                         वर्तमान स्थिति (Status):
                       </span>
                       {getStatusBadge(selectedApplicant.status)}
-                      
-                     
                     </div>
                     {selectedApplicant.proposer && (
                       <div className="text-sm text-gray-800 text-lg print:text-base">
@@ -688,8 +687,12 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                         <span className="text-indigo-700 font-bold print:text-black">
                           {selectedApplicant.proposer.name}
                         </span>
-                      </div>
+                          </div>
                     )}
+                          {selectedApplicant.registration_number && (
+                  <p className="text-lg font-bold text-black mt-2">पंजीकरण संख्या: {selectedApplicant.registration_number}</p>
+                )}
+                    
                   </div>
 
                   <div className="w-32 h-36 bg-gray-100 border-2 border-gray-400 rounded-md flex items-center justify-center overflow-hidden shrink-0 group relative print:border-black">
@@ -731,7 +734,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                   </div>
                 </div>
 
-                {/* Grid Layout (Edit or Read) */}
                 {isEditing ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 print:gap-y-6 bg-orange-50 p-6 rounded-xl border border-orange-200">
                     <EditInput
@@ -817,6 +819,49 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                       value={editData.email}
                       onChange={handleEditChange}
                     />
+
+                    {/* NEW FIELDS: is_from_raipur and region */}
+                    <div className="md:col-span-1">
+                      <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">
+                        From Raipur?
+                      </label>
+                      <select
+                        name="is_from_raipur"
+                        value={editData.is_from_raipur}
+                        onChange={(e) => {
+                          const isFromRaipur = e.target.value === 'true';
+                          setEditData({
+                            ...editData,
+                            is_from_raipur: isFromRaipur,
+                            region: isFromRaipur ? editData.region : "",
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-orange-300 rounded-md focus:ring-orange-500 font-semibold text-gray-900 bg-white"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </div>
+
+                    {editData.is_from_raipur && (
+                      <div className="md:col-span-1">
+                        <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">
+                          Region
+                        </label>
+                        <select
+                          name="region"
+                          value={editData.region}
+                          onChange={(e) => setEditData({ ...editData, region: e.target.value })}
+                          className="w-full px-3 py-2 border border-orange-300 rounded-md focus:ring-orange-500 font-semibold text-gray-900 bg-white"
+                        >
+                          <option value="">Select Region</option>
+                          {regions.map((r) => (
+                            <option key={r.id} value={r.name}>{r.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className="md:col-span-2">
                       <EditInput
                         label="वर्तमान पता"
@@ -907,6 +952,12 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                         label="ई-मेल (Email)"
                         value={selectedApplicant.email}
                       />
+
+                      <DetailItem label="From Raipur?" value={selectedApplicant.is_from_raipur ? 'Yes' : 'No'} />
+                      {selectedApplicant.is_from_raipur && (
+                        <DetailItem label="Region" value={selectedApplicant.region} />
+                      )}
+
                       <div className="md:col-span-2">
                         <DetailItem
                           label="वर्तमान पता (Current Address)"
@@ -919,6 +970,7 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                           value={selectedApplicant.permanent_address}
                         />
                       </div>
+                      
                       {selectedApplicant.office_address && (
                         <div className="md:col-span-2">
                           <DetailItem
@@ -929,7 +981,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                       )}
                     </div>
 
-                    {/* Aadhar Documents List */}
                     <div className="mt-8 pt-6 border-t border-gray-200 print:mt-6 print:pt-4">
                       <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">
                         सलग्न कागदपत्रे (Attached Documents)
@@ -1029,7 +1080,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                   </>
                 )}
 
-                {/* Admin Review Action Panel */}
                 {!isEditing &&
                   selectedApplicant.status === "PENDING_ADMIN_REVIEW" && (
                     <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200 print:hidden shadow-inner">
@@ -1060,7 +1110,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                     </div>
                   )}
 
-                {/* Promote Action Panel */}
                 {selectedApplicant.status === "PAYMENT_COMPLETED" && (
                   <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200 print:hidden shadow-inner">
                     <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
@@ -1105,7 +1154,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                   </div>
                 )}
 
-                {/* Signature Panel */}
                 <div className="mt-12 border-t border-gray-300 pt-6 flex justify-between items-end print:mt-16">
                   <div className="text-center print:block hidden">
                     <div className="mt-12 mb-2 border-b border-black w-48"></div>
@@ -1144,13 +1192,8 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
               </div>
             </div>
 
-            {/* --- RIGHT SIDE: DYNAMIC IMAGE VIEWER --- */}
-            {/* This side only appears when an admin clicks on a document */}
-           {/* --- RIGHT SIDE: DYNAMIC IMAGE VIEWER --- */}
-            {/* This side only appears when an admin clicks on a document */}
             {previewImage && (
               <div className="hidden lg:flex w-full lg:w-1/2 bg-slate-900 relative flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                {/* Header bar for image viewer */}
                 <div className="flex justify-between items-center p-4 bg-slate-950 border-b border-slate-800 shadow-sm z-10">
                   <div className="flex items-center space-x-3">
                     <span className="text-slate-300 font-semibold text-sm tracking-wide">Document Preview</span>
@@ -1159,7 +1202,6 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                     </span>
                   </div>
                   <div className="flex space-x-2">
-                    {/* Zoom Toggle Button */}
                     <button onClick={() => setIsZoomed(!isZoomed)} className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title={isZoomed ? "Zoom Out" : "Zoom In"}>
                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           {isZoomed 
@@ -1168,18 +1210,15 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                           }
                        </svg>
                     </button>
-                    {/* Open in New Tab Button */}
                     <a href={previewImage} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Open full size in new tab">
                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                     </a>
-                    {/* Close Button */}
                     <button onClick={() => setPreviewImage(null)} className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Close Preview">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
                 </div>
                 
-                {/* The actual image with Zoom properties */}
                 <div className="flex-1 p-6 flex items-center justify-center overflow-auto relative bg-slate-800/30">
                   <img 
                     src={previewImage} 
@@ -1192,7 +1231,7 @@ const [isZoomed, setIsZoomed] = useState(false); // <-- ADD THIS
                 </div>
               </div>
             )}
-            {/* Fallback floating close button for small screens if image is opened */}
+
             {previewImage && (
               <div className="lg:hidden absolute inset-0 z-50 bg-slate-900 flex flex-col">
                 <div className="flex justify-end p-4 bg-slate-950">

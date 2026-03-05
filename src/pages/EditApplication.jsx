@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchApplicantById, fetchMembersList, resubmitApplication } from "../services/api";
+import { fetchApplicantById, fetchActiveRegions, fetchMembersList, resubmitApplication } from "../services/api";
 import toast from 'react-hot-toast';
 
-const MINIO_BASE_URL = import.meta.env.VITE_MINIO_URL; // Make sure this matches your environment
+const MINIO_BASE_URL = import.meta.env.VITE_MINIO_URL;
 
 export default function EditApplication() {
   const { id } = useParams();
@@ -11,11 +11,16 @@ export default function EditApplication() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // ADDED MISSING REGIONS STATE
+  const [regions, setRegions] = useState([]);
+
+  // FIXED INITIALIZATION: Removed 'data.' references here
   const [formData, setFormData] = useState({
     full_name: "",
     father_or_husband_name: "",
     gender: "",
- 
+    is_from_raipur: false, // Default to false
+    region: "",            // Default to empty string
     permanent_address: "",
     current_address: "",
     mobile_number: "",
@@ -35,7 +40,7 @@ export default function EditApplication() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProposers, setLoadingProposers] = useState(false);
 
- const [files, setFiles] = useState({
+  const [files, setFiles] = useState({
     applicant_photo: null,
     applicant_signature: null,
     aadhar_front: null,
@@ -55,12 +60,13 @@ export default function EditApplication() {
         const result = await fetchApplicantById(id);
         const data = result.data || result;
         
-        // Populate standard fields
+        // Populate standard fields using the fetched 'data' object
         setFormData({
           full_name: data.full_name || "",
           father_or_husband_name: data.father_or_husband_name || "",
           gender: data.gender || "",            
-          
+          is_from_raipur: data.is_from_raipur || false, // Update here
+          region: data.region || "",                    // Update here
           permanent_address: data.permanent_address || "",
           current_address: data.current_address || "",
           mobile_number: data.mobile_number || "",
@@ -100,7 +106,21 @@ export default function EditApplication() {
       }
     };
     loadData();
-  }, [id]);
+  }, [id, MINIO_BASE_URL]);
+
+  useEffect(() => {
+    const loadRegions = async () => {
+      try {
+        const result = await fetchActiveRegions();
+        if (result.success) {
+          setRegions(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching regions", error);
+      }
+    };
+    loadRegions();
+  }, []);
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -136,7 +156,7 @@ export default function EditApplication() {
   };
 
   const handleFileChange = (e) => {
-   const file = e.target.files[0];
+    const file = e.target.files[0];
     if (file) {
       setFiles({ ...files, [e.target.name]: file });
       setPreviews({ ...previews, [e.target.name]: URL.createObjectURL(file) });
@@ -155,14 +175,13 @@ export default function EditApplication() {
     const formDataToSend = new FormData();
     
     Object.keys(formData).forEach(key => {
-     if (formData[key] === "") {
-        if (key === 'marriage_date' || key === 'office_address' || key === 'blood_group') {
-           // Skip it, or append empty depending on your backend Joi validation
-           // Joi handles missing optional fields perfectly.
-        }
-      } else if (formData[key] !== null) { 
-        formDataToSend.append(key, formData[key]);
-      }
+      if (formData[key] === "") {
+         if (key === 'marriage_date' || key === 'office_address' || key === 'blood_group' || key === 'region') {
+            // Skip optional empty fields
+         }
+       } else if (formData[key] !== null) { 
+         formDataToSend.append(key, formData[key]);
+       }
     });
     
     // Only append files if user selected NEW ones during editing
@@ -170,6 +189,7 @@ export default function EditApplication() {
     if (files.applicant_signature) formDataToSend.append('applicant_signature', files.applicant_signature);
     if (files.aadhar_front) formDataToSend.append('aadhar_front', files.aadhar_front);
     if (files.aadhar_back) formDataToSend.append('aadhar_back', files.aadhar_back);
+    
     try {
       await resubmitApplication(id, formDataToSend);
       toast.success("अर्ज यशस्वीरीत्या अद्यतनित झाला! (Application updated!)");
@@ -188,16 +208,12 @@ export default function EditApplication() {
     return <div className="min-h-screen flex items-center justify-center">Loading Data...</div>;
   }
 
-  // --- RENDER FUNCTION IS IDENTICAL TO ApplicationForm.jsx ---
-  // Just copy the exact `return (...)` block from your ApplicationForm.jsx here.
-  // Make sure the "Submit" button says "Update Application" instead.
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
        <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden border-t-8 border-orange-600">
          <div className="px-8 py-4 bg-orange-100 text-orange-800 font-bold text-center">
             You are editing a rejected application (Resubmission Mode)
          </div>
-         {/* COPY THE REST OF THE FORM FROM ApplicationForm.jsx */}
          <div className="px-8 py-6 border-b-2 border-orange-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-orange-50/30">
           <div className="mb-4 sm:mb-0">
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -218,7 +234,6 @@ export default function EditApplication() {
                   <span className="text-gray-400 text-xs mt-1">(Upload)</span>
                 </>
               )}
-              {/* Not required during edit, as they might keep the old photo */}
               <input type="file" name="applicant_photo" accept="image/*" className="hidden" onChange={handleFileChange} />
             </label>
           </div>
@@ -246,7 +261,6 @@ export default function EditApplication() {
               />
             </div>
 
-  {/* NEW FIELD: Gender */}
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">
                 लिंग <span className="text-gray-400 font-normal">(Gender)</span> *
@@ -255,7 +269,6 @@ export default function EditApplication() {
                 name="gender"
                 value={formData.gender}
                 required
-               
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
               >
@@ -293,10 +306,28 @@ export default function EditApplication() {
               />
             </div>
 
-          
+            <div className="sm:col-span-1">
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                रक्त गट <span className="text-gray-400 font-normal">(Blood Group)</span>
+              </label>
+              <select
+                name="blood_group"
+                onChange={handleChange}
+                value={formData.blood_group}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
+              >
+                <option value="">Select...</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
 
-            {/* NEW FIELD: Aadhar Card */}
-            {/* Aadhar Front Upload */}
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">
                 आधार कार्ड (Front) *
@@ -311,7 +342,6 @@ export default function EditApplication() {
               </label>
             </div>
 
-            {/* Aadhar Back Upload */}
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">
                 आधार कार्ड (Back) *
@@ -324,28 +354,6 @@ export default function EditApplication() {
                 )}
                 <input type="file" name="aadhar_back" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange}  />
               </label>
-            </div>
-
-            <div className="sm:col-span-1">
-              <label className="block text-sm font-bold text-gray-700 mb-1">
-                रक्त गट <span className="text-gray-400 font-normal">(Blood Group)</span>
-              </label>
-              <select
-                name="blood_group"
-                onChange={handleChange}
-                    value={formData.blood_group}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
-              >
-                <option value="">Select...</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
             </div>
           </div>
 
@@ -362,7 +370,6 @@ export default function EditApplication() {
                 name="mobile_number"
                 required
                 pattern="[6-9][0-9]{9}"
-
                 onChange={handleChange}
                 value={formData.mobile_number}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm"
@@ -382,6 +389,49 @@ export default function EditApplication() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm"
               />
             </div>
+
+            {/* ADDED: is_from_raipur AND region */}
+            <div className="sm:col-span-1">
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                काय तुम्ही रायपूरचे आहात? <span className="text-gray-400 font-normal">(Are you from Raipur?)</span> *
+              </label>
+              <select
+                name="is_from_raipur"
+                value={formData.is_from_raipur}
+                onChange={(e) => {
+                  const isFromRaipur = e.target.value === 'true';
+                  setFormData({ 
+                    ...formData, 
+                    is_from_raipur: isFromRaipur, 
+                    region: isFromRaipur ? formData.region : "" 
+                  });
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
+              >
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+
+            {formData.is_from_raipur && (
+              <div className="sm:col-span-1">
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  क्षेत्र <span className="text-gray-400 font-normal">(Region)</span> *
+                </label>
+                <select
+                  name="region"
+                  required={formData.is_from_raipur}
+                  value={formData.region}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
+                >
+                  <option value="">Select Region...</option>
+                  {regions.map((r) => (
+                    <option key={r.id} value={r.name}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="sm:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-1">
@@ -425,7 +475,7 @@ export default function EditApplication() {
                 name="education"
                 required
                 onChange={handleChange}
-                    value={formData.education}
+                value={formData.education}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm"
               />
             </div>
@@ -439,7 +489,7 @@ export default function EditApplication() {
                 name="occupation"
                 required
                 onChange={handleChange}
-                    value={formData.occupation}
+                value={formData.occupation}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm"
               />
             </div>
@@ -452,13 +502,11 @@ export default function EditApplication() {
                 name="office_address"
                 rows="2"
                 onChange={handleChange}
-                    value={formData.office_address}
+                value={formData.office_address}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm"
               ></textarea>
             </div>
           
-
-            
              <div className="sm:col-span-2 relative mt-4">
                <label className="block text-sm font-bold text-gray-700 mb-1">आजीव सदस्याचे नाव (Search Proposer Name) *</label>
                <input type="text" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (e.target.value === "") setFormData({ ...formData, proposer_member_id: "" }); }} className="w-full px-4 py-2 border border-gray-300 rounded-md" required={!formData.proposer_member_id} />
@@ -478,7 +526,6 @@ export default function EditApplication() {
                   ) : (
                     <span className="text-gray-600 text-sm font-bold">स्वाक्षरी</span>
                   )}
-                  {/* Not required during edit */}
                   <input type="file" name="applicant_signature" accept="image/*" className="hidden" onChange={handleFileChange} />
                 </label>
              </div>

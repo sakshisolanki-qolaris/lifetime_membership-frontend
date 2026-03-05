@@ -13,7 +13,10 @@ export default function PaymentPage() {
   const [isPaid, setIsPaid] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
-  const [feeAmount, setFeeAmount] = useState(1510); 
+  // --- FEE STATES ---
+  const [baseFee, setBaseFee] = useState(1500); // Default base membership fee
+  const REGISTRATION_FEE = 10; // Fixed registration fee
+  const totalAmount = baseFee + REGISTRATION_FEE; // Calculated total
   
   // --- NEW STATES FOR THE 2-STEP FLOW ---
   const [step, setStep] = useState('review'); // 'review' or 'payment'
@@ -31,10 +34,10 @@ export default function PaymentPage() {
         const appRes = await fetchApplicantById(applicant_id);
         setApplicantDetails(appRes.data || appRes);
 
-        // 2. Fetch Dynamic Fee
+        // 2. Fetch Dynamic Base Fee (This is what the admin changes, e.g., 1500 or 1600)
         const feeRes = await fetchCurrentFee();
-        if (feeRes?.data?.fee) setFeeAmount(feeRes.data.fee); 
-        else if (feeRes?.fee) setFeeAmount(feeRes.fee);      
+        if (feeRes?.data?.fee) setBaseFee(feeRes.data.fee); 
+        else if (feeRes?.fee) setBaseFee(feeRes.fee);      
 
         // 3. Check if already paid
         const statusRes = await checkPaymentStatus(applicant_id);
@@ -67,10 +70,10 @@ export default function PaymentPage() {
 
       const options = {
         key: key_id, 
-        amount: amount,
+        amount: amount, // Backend should pass the total amount in paise (e.g. 151000)
         currency: currency,
         name: "Maharashtra Mandal",
-        description: "Lifetime Membership Fee",
+        description: "Lifetime Membership + Registration Fee",
         order_id: order_id,
         theme: { color: "#ea580c" }, 
         
@@ -165,7 +168,7 @@ export default function PaymentPage() {
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8 text-left">
               <p className="text-sm text-gray-500">लेनदेन की स्थिति (Status): <span className="font-bold text-green-600 float-right">सत्यापित (Verified)</span></p>
               <div className="border-t border-gray-200 my-2"></div>
-              <p className="text-sm text-gray-500">भुगतान की गई राशि (Amount): <span className="font-bold text-gray-900 float-right">₹{feeAmount}.00</span></p>
+              <p className="text-sm text-gray-500">भुगतान की गई राशि (Total Amount): <span className="font-bold text-gray-900 float-right">₹{totalAmount}.00</span></p>
             </div>
             <Link to="/" className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors">
               मुख्य पृष्ठ पर लौटें (Return to Home)
@@ -188,31 +191,22 @@ export default function PaymentPage() {
                   <DetailBox label="मोबाईल (Mobile Number)" value={applicantDetails?.mobile_number} />
                   <DetailBox label="ई-मेल (Email)" value={applicantDetails?.email} />
                   <DetailBox label="जन्म तिथि (DOB)" value={applicantDetails?.date_of_birth} />
-                    <DetailBox
-                        label="विवाह तिथि (Marriage Date)"
-                        value={applicantDetails?.marriage_date || "N/A"}
-                      />
-                        <DetailBox
-                        label="रक्त गट (Blood Group)"
-                        value={applicantDetails?.blood_group || "N/A"}
-                      />
+                  <DetailBox label="विवाह तिथि (Marriage Date)" value={applicantDetails?.marriage_date || "N/A"} />
+                  <DetailBox label="रक्त गट (Blood Group)" value={applicantDetails?.blood_group || "N/A"} />
                   <DetailBox label="शैक्षणिक योग्यता (Education)" value={applicantDetails?.education} />
-                  <DetailBox label="वर्तमान पता (Current Address)" value={applicantDetails?.current_address} 
-                 /> 
-                        <DetailBox
-                          label="स्थाई पता (Permanent Address)"
-                          value={applicantDetails?.permanent_address}
-                        />      
+
+                  <DetailBox label="From Raipur?" value={applicantDetails?.is_from_raipur ? 'Yes' : 'No'} />
+                  {applicantDetails?.is_from_raipur && (
+                    <DetailBox label="Region" value={applicantDetails?.region} />
+                  )}
+
+                  <DetailBox label="वर्तमान पता (Current Address)" value={applicantDetails?.current_address} /> 
+                  <DetailBox label="स्थाई पता (Permanent Address)" value={applicantDetails?.permanent_address} />      
                      
-                      {applicantDetails?.office_address && (
-                        
-                          <DetailBox
-                            label="कार्यालय का पता (Office Address)"
-                            value={applicantDetails?.office_address}
-                          />
-                  
-                      )}
-                      </div>
+                  {applicantDetails?.office_address && (
+                    <DetailBox label="कार्यालय का पता (Office Address)" value={applicantDetails?.office_address} />
+                  )}
+                </div>
                 <button 
                   onClick={() => setStep('payment')}
                   className="w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-lg text-lg font-extrabold text-white bg-orange-600 hover:bg-orange-700 transition-all"
@@ -253,10 +247,20 @@ export default function PaymentPage() {
                      <span className="text-gray-600 text-sm font-medium">Membership Type</span>
                      <span className="text-gray-900 font-bold">Lifetime (आजीवन)</span>
                   </div>
+
+                  {/* FEE BREAKDOWN */}
+                  <div className="flex justify-between items-center mb-2">
+                     <span className="text-gray-600 text-sm font-medium">सदस्यता शुल्क (Membership Fee)</span>
+                     <span className="text-gray-900 font-bold">₹{baseFee}.00</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4 pb-4 border-b border-orange-200 border-dashed">
+                     <span className="text-gray-600 text-sm font-medium">पंजीकरण शुल्क (Registration Fee)</span>
+                     <span className="text-gray-900 font-bold">₹{REGISTRATION_FEE}.00</span>
+                  </div>
                   
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-lg font-bold text-gray-900">कुल राशि<br/><span className="text-sm">(Total Amount)</span></span>
-                    <span className="text-3xl font-black text-orange-600">₹{feeAmount}.00</span>
+                    <span className="text-3xl font-black text-orange-600">₹{totalAmount}.00</span>
                   </div>
                 </div>
 
@@ -267,7 +271,7 @@ export default function PaymentPage() {
                     ${loading ? "bg-orange-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 hover:shadow-xl"}
                   `}
                 >
-                  {loading ? "Connecting to Bank..." : `₹${feeAmount} का भुगतान करें (Pay Now)`}
+                  {loading ? "Connecting to Bank..." : `₹${totalAmount} का भुगतान करें (Pay Now)`}
                 </button>
                 
                 <p className="text-center text-xs text-gray-500 mt-4 flex flex-col items-center justify-center gap-1">

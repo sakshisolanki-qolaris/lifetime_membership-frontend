@@ -185,6 +185,21 @@ export default function ApprovalPage() {
             </div>
           </div>
 
+          <div>
+  <p className="text-sm text-gray-500 font-medium mb-1">From Raipur?</p>
+  <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">
+    {applicant.is_from_raipur ? 'Yes' : 'No'}
+  </p>
+</div>
+{applicant.is_from_raipur && (
+  <div>
+    <p className="text-sm text-gray-500 font-medium mb-1">Region</p>
+    <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">
+      {applicant.region}
+    </p>
+  </div>
+)}
+
           {/* Section 3: Professional Details */}
           <div>
             <h3 className="text-lg font-bold text-indigo-800 border-b border-gray-200 pb-2 mb-4">Professional Details</h3>

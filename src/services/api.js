@@ -162,3 +162,10 @@ export const reviewApplicantByAdmin = async (id, action) => {
   });
   return response.data;
 };
+
+
+// Fetch active regions for the dropdown
+export const fetchActiveRegions = async () => {
+  const response = await apiClient.get('/regions');
+  return response.data;
+};

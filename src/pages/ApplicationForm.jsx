@@ -1,13 +1,14 @@
 import React, { useState,useEffect } from "react";
-import { fetchMembersList } from "../services/api";
-import { submitApplication } from '../services/api';
+import { submitApplication,fetchMembersList,fetchActiveRegions } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 export default function MembershipForm() {
   const [formData, setFormData] = useState({
     full_name: "",
     father_or_husband_name: "",
-    gender: "",        
+    gender: "",  
+    is_from_raipur: false, 
+  region: "",              
     permanent_address: "",
     current_address: "",
     mobile_number: "",
@@ -26,6 +27,7 @@ export default function MembershipForm() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProposers, setLoadingProposers] = useState(false);
+  const [regions, setRegions] = useState([]);
 const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 useEffect(() => {
@@ -73,6 +75,20 @@ const [files, setFiles] = useState({
     aadhar_front: null,
     aadhar_back: null,
   });
+
+  useEffect(() => {
+  const loadRegions = async () => {
+    try {
+      const result = await fetchActiveRegions();
+      if (result.success) {
+        setRegions(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching regions", error);
+    }
+  };
+  loadRegions();
+}, []);
 
   const [previews, setPreviews] = useState({
     applicant_photo: null,
@@ -391,6 +407,47 @@ formDataToSend.append('aadhar_front', files.aadhar_front);
             </div>
           </div>
 
+<div className="sm:col-span-1">
+  <label className="block text-sm font-bold text-gray-700 mb-1">
+    काय तुम्ही रायपूरचे आहात? <span className="text-gray-400 font-normal">(Are you from Raipur?)</span> *
+  </label>
+  <select
+    name="is_from_raipur"
+    value={formData.is_from_raipur}
+    onChange={(e) => {
+      const isFromRaipur = e.target.value === 'true';
+      setFormData({ 
+        ...formData, 
+        is_from_raipur: isFromRaipur, 
+        region: isFromRaipur ? formData.region : "" // Clear region if No
+      });
+    }}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
+  >
+    <option value="false">No</option>
+    <option value="true">Yes</option>
+  </select>
+</div>
+
+{formData.is_from_raipur && (
+  <div className="sm:col-span-1">
+    <label className="block text-sm font-bold text-gray-700 mb-1">
+      क्षेत्र <span className="text-gray-400 font-normal">(Region)</span> *
+    </label>
+    <select
+      name="region"
+      required={formData.is_from_raipur}
+      value={formData.region}
+      onChange={handleChange}
+      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
+    >
+      <option value="">Select Region...</option>
+      {regions.map((r) => (
+        <option key={r.id} value={r.name}>{r.name}</option>
+      ))}
+    </select>
+  </div>
+)}
           <hr className="border-gray-200" />
 
           {/* Section 3: Professional Details */}
