@@ -14,13 +14,14 @@ export default function EditApplication() {
   // ADDED MISSING REGIONS STATE
   const [regions, setRegions] = useState([]);
 
-  // FIXED INITIALIZATION: Removed 'data.' references here
+  // FIXED INITIALIZATION: Must be snake_case to match the input 'name' attributes 
+  // and what the backend API expects upon form submission.
   const [formData, setFormData] = useState({
     full_name: "",
     father_or_husband_name: "",
     gender: "",
-    is_from_raipur: false, // Default to false
-    region: "",            // Default to empty string
+    is_from_raipur: false, 
+    region: "",            
     permanent_address: "",
     current_address: "",
     mobile_number: "",
@@ -60,25 +61,25 @@ export default function EditApplication() {
         const result = await fetchApplicantById(id);
         const data = result.data || result;
         
-        // Populate standard fields using the fetched 'data' object
+        // FIXED MAPPING: Read from backend camelCase, store in frontend snake_case
         setFormData({
-          full_name: data.full_name || "",
-          father_or_husband_name: data.father_or_husband_name || "",
+          full_name: data.fullName || "",
+          father_or_husband_name: data.fatherOrHusbandName || "",
           gender: data.gender || "",            
-          is_from_raipur: data.is_from_raipur || false, // Update here
-          region: data.region || "",                    // Update here
-          permanent_address: data.permanent_address || "",
-          current_address: data.current_address || "",
-          mobile_number: data.mobile_number || "",
+          is_from_raipur: data.isFromRaipur || false, 
+          region: data.region || "",                    
+          permanent_address: data.permanentAddress || "",
+          current_address: data.currentAddress || "",
+          mobile_number: data.mobileNumber || "",
           email: data.email || "",
           education: data.education || "",
           occupation: data.occupation || "",
-          office_address: data.office_address || "",
-          date_of_birth: data.date_of_birth || "",
-          marriage_date: data.marriage_date || "",
-          blood_group: data.blood_group || "",
-          membership_type: data.membership_type || "LIFETIME",
-          proposer_member_id: data.proposer_member_id || ""
+          office_address: data.officeAddress || "",
+          date_of_birth: data.dateOfBirth || "",
+          marriage_date: data.marriageDate || "",
+          blood_group: data.bloodGroup || "",
+          membership_type: data.membershipType || "LIFETIME",
+          proposer_member_id: data.proposerMemberId || (data.proposer ? data.proposer.id : "")
         });
 
         // Populate proposer search term
@@ -86,12 +87,13 @@ export default function EditApplication() {
           setSearchTerm(data.proposer.name);
         }
 
-        // Populate file previews from backend
+        // FIXED FILES: Use camelCase fileType and minioUrl to read from backend
         if (data.files) {
-          const photoUrl = data.files.find(f => f.file_type === 'PHOTO')?.minio_url;
-          const sigUrl = data.files.find(f => f.file_type === 'SIGNATURE')?.minio_url;
-          const aadharFrontUrl = data.files.find(f => f.file_type === 'AADHAR_FRONT')?.minio_url;
-          const aadharBackUrl = data.files.find(f => f.file_type === 'AADHAR_BACK')?.minio_url;
+          const photoUrl = data.files.find(f => f.fileType === 'PHOTO')?.minioUrl;
+          const sigUrl = data.files.find(f => f.fileType === 'SIGNATURE')?.minioUrl;
+          const aadharFrontUrl = data.files.find(f => f.fileType === 'AADHAR_FRONT')?.minioUrl;
+          const aadharBackUrl = data.files.find(f => f.fileType === 'AADHAR_BACK')?.minioUrl;
+          
           setPreviews({
             applicant_photo: photoUrl ? `${MINIO_BASE_URL}${photoUrl}` : null,
             applicant_signature: sigUrl ? `${MINIO_BASE_URL}${sigUrl}` : null,
@@ -106,7 +108,7 @@ export default function EditApplication() {
       }
     };
     loadData();
-  }, [id, MINIO_BASE_URL]);
+  }, [id]); // MINIO_BASE_URL removed from dependencies since it's a constant outside the component
 
   useEffect(() => {
     const loadRegions = async () => {
@@ -177,7 +179,7 @@ export default function EditApplication() {
     Object.keys(formData).forEach(key => {
       if (formData[key] === "") {
          if (key === 'marriage_date' || key === 'office_address' || key === 'blood_group' || key === 'region') {
-            // Skip optional empty fields
+            // Skip optional empty fields to prevent backend validation errors
          }
        } else if (formData[key] !== null) { 
          formDataToSend.append(key, formData[key]);

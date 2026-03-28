@@ -66,15 +66,17 @@ export default function PaymentPage() {
       }
 
       const orderRes = await createPaymentOrder(applicant_id);
-      const { order_id, amount, currency, key_id } = orderRes.data;
+      
+      // FIX: Destructure the exact keys coming from your backend (camelCase)
+      const { orderId, amountInPaise, currency, keyId } = orderRes.data;
 
       const options = {
-        key: key_id, 
-        amount: amount, // Backend should pass the total amount in paise (e.g. 151000)
+        key: keyId, // Use keyId from backend
+        amount: amountInPaise, // Use amountInPaise from backend
         currency: currency,
         name: "Maharashtra Mandal",
         description: "Lifetime Membership + Registration Fee",
-        order_id: order_id,
+        order_id: orderId, // Razorpay SDK *requires* snake_case 'order_id' here, but we pass our camelCase 'orderId' variable into it
         theme: { color: "#ea580c" }, 
         
         handler: async function (response) {
@@ -185,26 +187,28 @@ export default function PaymentPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                  <div className="sm:col-span-2"><DetailBox label="पूर्ण नाम (Full Name)" value={applicantDetails?.full_name} /></div>
-                  <DetailBox label="पिता/पति का नाम (Father/Husband)" value={applicantDetails?.father_or_husband_name} />
+                  {/* FIX: Use applicantDetails.fullName instead of full_name */}
+                  <div className="sm:col-span-2"><DetailBox label="पूर्ण नाम (Full Name)" value={applicantDetails?.fullName} /></div>
+                  <DetailBox label="पिता/पति का नाम (Father/Husband)" value={applicantDetails?.fatherOrHusbandName} />
                   <DetailBox label="लिंग (Gender)" value={applicantDetails?.gender} />
-                  <DetailBox label="मोबाईल (Mobile Number)" value={applicantDetails?.mobile_number} />
+                  <DetailBox label="मोबाईल (Mobile Number)" value={applicantDetails?.mobileNumber} />
                   <DetailBox label="ई-मेल (Email)" value={applicantDetails?.email} />
-                  <DetailBox label="जन्म तिथि (DOB)" value={applicantDetails?.date_of_birth} />
-                  <DetailBox label="विवाह तिथि (Marriage Date)" value={applicantDetails?.marriage_date || "N/A"} />
-                  <DetailBox label="रक्त गट (Blood Group)" value={applicantDetails?.blood_group || "N/A"} />
+                  <DetailBox label="जन्म तिथि (DOB)" value={applicantDetails?.dateOfBirth} />
+                  <DetailBox label="विवाह तिथि (Marriage Date)" value={applicantDetails?.marriageDate || "N/A"} />
+                  <DetailBox label="रक्त गट (Blood Group)" value={applicantDetails?.bloodGroup || "N/A"} />
                   <DetailBox label="शैक्षणिक योग्यता (Education)" value={applicantDetails?.education} />
 
-                  <DetailBox label="From Raipur?" value={applicantDetails?.is_from_raipur ? 'Yes' : 'No'} />
-                  {applicantDetails?.is_from_raipur && (
+                  <DetailBox label="From Raipur?" value={applicantDetails?.isFromRaipur ? 'Yes' : 'No'} />
+                  {applicantDetails?.isFromRaipur && (
                     <DetailBox label="Region" value={applicantDetails?.region} />
                   )}
 
-                  <DetailBox label="वर्तमान पता (Current Address)" value={applicantDetails?.current_address} /> 
-                  <DetailBox label="स्थाई पता (Permanent Address)" value={applicantDetails?.permanent_address} />      
+                  <DetailBox label="वर्तमान पता (Current Address)" value={applicantDetails?.currentAddress} /> 
+                  <DetailBox label="स्थाई पता (Permanent Address)" value={applicantDetails?.permanentAddress} />      
                      
-                  {applicantDetails?.office_address && (
-                    <DetailBox label="कार्यालय का पता (Office Address)" value={applicantDetails?.office_address} />
+                  {/* FIX: Use applicantDetails.officeAddress instead of office_address */}
+                  {applicantDetails?.officeAddress && (
+                    <DetailBox label="कार्यालय का पता (Office Address)" value={applicantDetails?.officeAddress} />
                   )}
                 </div>
                 <button 
@@ -241,7 +245,8 @@ export default function PaymentPage() {
                   </h3>
                   <div className="flex justify-between items-center mb-2">
                      <span className="text-gray-600 text-sm font-medium">Applicant Name</span>
-                     <span className="text-gray-900 font-bold">{applicantDetails?.full_name}</span>
+                     {/* FIX: Use applicantDetails.fullName instead of full_name */}
+                     <span className="text-gray-900 font-bold">{applicantDetails?.fullName}</span>
                   </div>
                   <div className="flex justify-between items-center mb-4 pb-4 border-b border-orange-200 border-dashed">
                      <span className="text-gray-600 text-sm font-medium">Membership Type</span>

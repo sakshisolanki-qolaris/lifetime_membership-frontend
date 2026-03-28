@@ -33,7 +33,7 @@ export default function ApprovalPage() {
       .then(res => {
         if (res.success) {
           setApplicant(res.data.applicant);
-          setIsUsed(res.data.is_used);
+          setIsUsed(res.data.isUsed);
         }
       })
       .catch(err => toast.error(err.response?.data?.message || 'This link is invalid.'))
@@ -59,14 +59,14 @@ export default function ApprovalPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-bold text-gray-600">Loading Application Details...</div>;
   if (!applicant) return <div className="min-h-screen flex items-center justify-center text-red-600 text-xl font-bold">Invalid or Expired Approval Link</div>;
 
-  const photoObj = applicant.files?.find(f => f.file_type === 'PHOTO');
-  const signatureObj = applicant.files?.find(f => f.file_type === 'SIGNATURE');
-  const photoUrl = photoObj ? `${MINIO_BASE_URL}${photoObj.minio_url}` : null;
-  const signatureUrl = signatureObj ? `${MINIO_BASE_URL}${signatureObj.minio_url}` : null;
-  const aadharFrontObj = applicant.files?.find(f => f.file_type === 'AADHAR_FRONT');
-  const aadharBackObj = applicant.files?.find(f => f.file_type === 'AADHAR_BACK');
-  const aadharFrontUrl = aadharFrontObj ? `${MINIO_BASE_URL}${aadharFrontObj.minio_url}` : null;
-  const aadharBackUrl = aadharBackObj ? `${MINIO_BASE_URL}${aadharBackObj.minio_url}` : null;
+  const photoObj = applicant.files?.find(f => f.fileType === 'PHOTO');
+  const signatureObj = applicant.files?.find(f => f.fileType === 'SIGNATURE');
+  const photoUrl = photoObj ? `${MINIO_BASE_URL}${photoObj.minioUrl}` : null;
+  const signatureUrl = signatureObj ? `${MINIO_BASE_URL}${signatureObj.minioUrl}` : null;
+  const aadharFrontObj = applicant.files?.find(f => f.fileType === 'AADHAR_FRONT');
+  const aadharBackObj = applicant.files?.find(f => f.fileType === 'AADHAR_BACK');
+  const aadharFrontUrl = aadharFrontObj ? `${MINIO_BASE_URL}${aadharFrontObj.minioUrl}` : null;
+  const aadharBackUrl = aadharBackObj ? `${MINIO_BASE_URL}${aadharBackObj.minioUrl}` : null;
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
@@ -137,11 +137,11 @@ export default function ApprovalPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Full Name</p>
-                <p className="font-bold text-gray-900 text-lg bg-gray-50 p-2 rounded">{applicant.full_name}</p>
+                <p className="font-bold text-gray-900 text-lg bg-gray-50 p-2 rounded">{applicant.fullName}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Father/Husband Name</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.father_or_husband_name}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.fatherOrHusbandName}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Gender</p>
@@ -149,15 +149,15 @@ export default function ApprovalPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Date of Birth</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.date_of_birth}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.dateOfBirth}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Blood Group</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.blood_group || "N/A"}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.bloodGroup || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Marriage Date</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.marriage_date || "N/A"}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.marriageDate || "N/A"}</p>
               </div>
             </div>
           </div>
@@ -168,7 +168,7 @@ export default function ApprovalPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Mobile Number</p>
-                <p className="font-bold text-gray-900 bg-gray-50 p-2 rounded">{applicant.mobile_number}</p>
+                <p className="font-bold text-gray-900 bg-gray-50 p-2 rounded">{applicant.mobileNumber}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium mb-1">Email Address</p>
@@ -176,11 +176,11 @@ export default function ApprovalPage() {
               </div>
               <div className="sm:col-span-2">
                 <p className="text-sm text-gray-500 font-medium mb-1">Current Address</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded leading-relaxed">{applicant.current_address}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded leading-relaxed">{applicant.currentAddress}</p>
               </div>
               <div className="sm:col-span-2">
                 <p className="text-sm text-gray-500 font-medium mb-1">Permanent Address</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded leading-relaxed">{applicant.permanent_address}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-3 rounded leading-relaxed">{applicant.permanentAddress}</p>
               </div>
             </div>
           </div>
@@ -188,10 +188,10 @@ export default function ApprovalPage() {
           <div>
   <p className="text-sm text-gray-500 font-medium mb-1">From Raipur?</p>
   <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">
-    {applicant.is_from_raipur ? 'Yes' : 'No'}
+    {applicant.isFromRaipur ? 'Yes' : 'No'}
   </p>
 </div>
-{applicant.is_from_raipur && (
+{applicant.isFromRaipur && (
   <div>
     <p className="text-sm text-gray-500 font-medium mb-1">Region</p>
     <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">
@@ -214,7 +214,7 @@ export default function ApprovalPage() {
               </div>
               <div className="sm:col-span-2">
                 <p className="text-sm text-gray-500 font-medium mb-1">Office Address</p>
-                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.office_address || "N/A"}</p>
+                <p className="font-semibold text-gray-800 bg-gray-50 p-2 rounded">{applicant.officeAddress || "N/A"}</p>
               </div>
             </div>
           </div>

@@ -141,25 +141,25 @@ export default function AdminDashboard() {
 
   const startEditing = () => {
     setEditData({
-      full_name: selectedApplicant.full_name || "",
-      father_or_husband_name: selectedApplicant.father_or_husband_name || "",
+      full_name: selectedApplicant.fullName || "",
+      father_or_husband_name: selectedApplicant.fatherOrHusbandName || "",
       gender: selectedApplicant.gender || "",
-      date_of_birth: selectedApplicant.date_of_birth || "",
+      date_of_birth: selectedApplicant.dateOfBirth || "",
       marriage_date:
-        selectedApplicant.marriage_date &&
-        selectedApplicant.marriage_date.toLowerCase() !== "invalid date"
-          ? selectedApplicant.marriage_date
+        selectedApplicant.marriageDate &&
+        selectedApplicant.marriageDate.toLowerCase() !== "invalid date"
+          ? selectedApplicant.marriageDate
           : "",
-      blood_group: selectedApplicant.blood_group || "",
-      membership_type: selectedApplicant.membership_type || "",
+      blood_group: selectedApplicant.bloodGroup || "",
+      membership_type: selectedApplicant.membershipType || "",
       education: selectedApplicant.education || "",
       occupation: selectedApplicant.occupation || "",
-      mobile_number: selectedApplicant.mobile_number || "",
+      mobile_number: selectedApplicant.mobileNumber || "",
       email: selectedApplicant.email || "",
-      current_address: selectedApplicant.current_address || "",
-      permanent_address: selectedApplicant.permanent_address || "",
-      office_address: selectedApplicant.office_address || "",
-      is_from_raipur: selectedApplicant.is_from_raipur || false, // Ensure defaults
+      current_address: selectedApplicant.currentAddress || "",
+      permanent_address: selectedApplicant.permanentAddress || "",
+      office_address: selectedApplicant.officeAddress || "",
+      is_from_raipur: selectedApplicant.isFromRaipur || false, // Ensure defaults
       region: selectedApplicant.region || "", // Ensure defaults
     });
     setIsEditing(true);
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
       setMembers((prevMembers) =>
         prevMembers.map((m) =>
           m.id === id
-            ? { ...m, is_active: response?.data?.is_active ?? !m.is_active }
+            ? { ...m, isActive: response?.data?.isActive ?? !m.isActive }
             : m,
         ),
       );
@@ -347,8 +347,8 @@ export default function AdminDashboard() {
 
   const getFileUrl = (type) => {
     if (!selectedApplicant?.files) return null;
-    const file = selectedApplicant.files.find((f) => f.file_type === type);
-    return file ? `${MINIO_BASE_URL}${file.minio_url}` : null;
+    const file = selectedApplicant.files.find((f) => f.fileType === type);
+    return file ? `${MINIO_BASE_URL}${file.minioUrl}` : null;
   };
 
   return (
@@ -466,7 +466,7 @@ export default function AdminDashboard() {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
-                            {app.full_name}
+                            {app.fullName}
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
                             {app.education} • {app.occupation}
@@ -474,7 +474,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-800">
-                            {app.mobile_number}
+                            {app.mobileNumber}
                           </div>
                           <div className="text-sm text-gray-500">
                             {app.email}
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
                             {member.name}
                           </div>
                           <div className="text-sm text-gray-500 mt-1">
-                            {member.mobile_number}
+                            {member.mobileNumber}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -543,18 +543,18 @@ export default function AdminDashboard() {
                                 handleToggleMemberStatus(member.id, e)
                               }
                               disabled={member.role === "PRESIDENT"}
-                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${member.is_active ? "bg-green-500" : "bg-gray-300"}`}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${member.isActive ? "bg-green-500" : "bg-gray-300"}`}
                               role="switch"
-                              aria-checked={member.is_active}
+                              aria-checked={member.isActive}
                             >
                               <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${member.is_active ? "translate-x-5" : "translate-x-0"}`}
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${member.isActive ? "translate-x-5" : "translate-x-0"}`}
                               />
                             </button>
                             <span
-                              className={`text-sm font-semibold ${member.is_active ? "text-green-700" : "text-gray-500"}`}
+                              className={`text-sm font-semibold ${member.isActive ? "text-green-700" : "text-gray-500"}`}
                             >
-                              {member.is_active ? "सक्रिय" : "निष्क्रिय"}
+                              {member.isActive ? "सक्रिय" : "निष्क्रिय"}
                             </span>
                           </div>
                         </td>
@@ -689,8 +689,8 @@ export default function AdminDashboard() {
                         </span>
                           </div>
                     )}
-                          {selectedApplicant.registration_number && (
-                  <p className="text-lg font-bold text-black mt-2">पंजीकरण संख्या: {selectedApplicant.registration_number}</p>
+                          {selectedApplicant.registrationNumber && (
+                  <p className="text-lg font-bold text-black mt-2">पंजीकरण संख्या: {selectedApplicant.registrationNumber}</p>
                 )}
                     
                   </div>
@@ -910,11 +910,11 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 print:gap-y-6">
                       <DetailItem
                         label="पूर्ण नाम (Full Name)"
-                        value={selectedApplicant.full_name}
+                        value={selectedApplicant.fullName}
                       />
                       <DetailItem
                         label="पिता/पति का नाम (Father/Husband Name)"
-                        value={selectedApplicant.father_or_husband_name}
+                        value={selectedApplicant.fatherOrHusbandName}
                       />
                       <DetailItem
                         label="लिंग (Gender)"
@@ -922,19 +922,19 @@ export default function AdminDashboard() {
                       />
                       <DetailItem
                         label="जन्म तिथि (Date of Birth)"
-                        value={selectedApplicant.date_of_birth}
+                        value={selectedApplicant.dateOfBirth}
                       />
                       <DetailItem
                         label="विवाह तिथि (Marriage Date)"
-                        value={selectedApplicant.marriage_date || "N/A"}
+                        value={selectedApplicant.marriageDate || "N/A"}
                       />
                       <DetailItem
                         label="रक्त गट (Blood Group)"
-                        value={selectedApplicant.blood_group || "N/A"}
+                        value={selectedApplicant.bloodGroup || "N/A"}
                       />
                       <DetailItem
                         label="सदस्यता (Membership Type)"
-                        value={selectedApplicant.membership_type}
+                        value={selectedApplicant.membershipType}
                       />
                       <DetailItem
                         label="शैक्षणिक योग्यता (Education)"
@@ -946,36 +946,36 @@ export default function AdminDashboard() {
                       />
                       <DetailItem
                         label="मोबाईल (Mobile Number)"
-                        value={selectedApplicant.mobile_number}
+                        value={selectedApplicant.mobileNumber}
                       />
                       <DetailItem
                         label="ई-मेल (Email)"
                         value={selectedApplicant.email}
                       />
 
-                      <DetailItem label="From Raipur?" value={selectedApplicant.is_from_raipur ? 'Yes' : 'No'} />
-                      {selectedApplicant.is_from_raipur && (
+                      <DetailItem label="From Raipur?" value={selectedApplicant.isFromRaipur ? 'Yes' : 'No'} />
+                      {selectedApplicant.isFromRaipur && (
                         <DetailItem label="Region" value={selectedApplicant.region} />
                       )}
 
                       <div className="md:col-span-2">
                         <DetailItem
                           label="वर्तमान पता (Current Address)"
-                          value={selectedApplicant.current_address}
+                          value={selectedApplicant.currentAddress}
                         />
                       </div>
                       <div className="md:col-span-2">
                         <DetailItem
                           label="स्थाई पता (Permanent Address)"
-                          value={selectedApplicant.permanent_address}
+                          value={selectedApplicant.permanentAddress}
                         />
                       </div>
                       
-                      {selectedApplicant.office_address && (
+                      {selectedApplicant.officeAddress && (
                         <div className="md:col-span-2">
                           <DetailItem
                             label="कार्यालय का पता (Office Address)"
-                            value={selectedApplicant.office_address}
+                            value={selectedApplicant.officeAddress}
                           />
                         </div>
                       )}
