@@ -3,6 +3,26 @@ import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { createPaymentOrder, verifyPayment, checkPaymentStatus, fetchCurrentFee, fetchApplicantById } from '../services/api';
 import toast from 'react-hot-toast';
 
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    // If it's already loaded, resolve immediately
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => {
+      resolve(true);
+    };
+    script.onerror = () => {
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
+
 export default function PaymentPage() {
   const [searchParams] = useSearchParams();
   const { applicant_id: paramId } = useParams();
@@ -59,11 +79,15 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
-      if (!window.Razorpay) {
+
+      const isScriptLoaded = await loadRazorpayScript();
+      
+      if (!isScriptLoaded) {
         toast.error("Razorpay SDK failed to load. Please check your internet connection.");
         setLoading(false);
         return;
       }
+
 
       const orderRes = await createPaymentOrder(applicant_id);
       
