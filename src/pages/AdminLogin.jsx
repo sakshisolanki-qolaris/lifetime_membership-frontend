@@ -17,13 +17,12 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const result = await adminLogin(formData.phone, formData.password);
+       await adminLogin(formData.phone, formData.password);
       
-      // ✅ Token extraction fixed
-      localStorage.setItem('adminToken', result.data.token);
+    // ✅ Token is now in an httpOnly cookie. Just set a UI state flag.
+      localStorage.setItem('adminLoggedIn', 'true'); 
       toast.success('लॉगिन सफल रहा! (Login Successful!)');
       navigate('/admin/dashboard');
-
     } catch (error) {
       toast.error(error.response?.data?.message || 'लॉगिन विफल (Login failed).');
     } finally {

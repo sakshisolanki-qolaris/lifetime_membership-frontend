@@ -4,25 +4,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Include cookies in requests if your backend uses them for sessions
 });
 
 apiClient.interceptors.response.use(
-  (response) => {
-    // If the request succeeds, just return the response
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // If the backend returns a 401 (Unauthorized) or 403 (Forbidden)
     if (error.response?.status === 401 || error.response?.status === 403) {
       console.warn("Session expired or unauthorized. Logging out...");
-      // 1. Clear the tokens from local storage
-      localStorage.removeItem('adminToken');
+      // Clear UI flags instead of the token
+      localStorage.removeItem('adminLoggedIn'); 
       localStorage.removeItem('adminUser');
-      
-      // 2. Force redirect to the login page
       window.location.href = '/admin/login';
     }
-    // Return the error so the individual component can still show a toast message if needed
     return Promise.reject(error);
   }
 );
