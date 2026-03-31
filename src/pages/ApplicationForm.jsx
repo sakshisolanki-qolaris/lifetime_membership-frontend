@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import useDebounce from "../hooks/useDebounce";
 
 // Zod Validation Schema
 const applicationSchema = z.object({
@@ -26,7 +27,6 @@ const applicationSchema = z.object({
   proposer_member_id: z.string().min(1, "कृपया अनुमोदक चुनें (Select a proposer from the list)"),
   declaration: z.literal(true, { errorMap: () => ({ message: "आपको नियमों से सहमत होना होगा (You must agree to the terms)" }) })
 }).superRefine((data, ctx) => {
-  // Conditional validation: If from Raipur, region MUST be selected
   if (data.is_from_raipur === "true" && (!data.region || data.region === "")) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -37,7 +37,6 @@ const applicationSchema = z.object({
 });
 
 export default function MembershipForm() {
-  // Initialize React Hook Form
   const {
     register,
     handleSubmit,
@@ -51,12 +50,12 @@ export default function MembershipForm() {
     }
   });
 
-  // Watch fields to trigger UI changes
   const isFromRaipur = watch("is_from_raipur");
 
-  // Local State for Search, Dropdowns, and Files
+  // Local State
   const [proposers, setProposers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProposerName, setSelectedProposerName] = useState(""); // ✅ NEW: Tracks the exact clicked name
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProposers, setLoadingProposers] = useState(false);
   const [regions, setRegions] = useState([]);
@@ -77,14 +76,13 @@ export default function MembershipForm() {
     aadhar_back: null,
   });
 
-  // Fetch Regions on mount
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   useEffect(() => {
     const loadRegions = async () => {
       try {
         const result = await fetchActiveRegions();
-        if (result.success) {
-          setRegions(result.data);
-        }
+        if (result.success) setRegions(result.data);
       } catch (error) {
         console.error("Error fetching regions", error);
       }
@@ -92,51 +90,40 @@ export default function MembershipForm() {
     loadRegions();
   }, []);
 
- // Debounced Proposer Search with Cleanup
+  // ✅ UPDATED: Search Logic
   useEffect(() => {
-    // 1. Create a flag to track if the component is alive
-    let isMounted = true; 
-
-    if (searchTerm.trim() === "") {
+    // DO NOT fetch if the box is empty, OR if the text perfectly matches the user we just clicked!
+    if (debouncedSearchTerm.trim() === "" || debouncedSearchTerm === selectedProposerName) {
       setProposers([]);
+      setIsDropdownOpen(false);
       return;
     }
 
-    const delayDebounceFn = setTimeout(async () => {
-      // 2. Before making the API call, check if the component is still mounted
-      if (!isMounted) return; 
-
+    const fetchProposers = async () => {
       setLoadingProposers(true);
       try {
-        const result = await fetchMembersList(searchTerm);
-        
-        // 3. Before updating state with the results, check again!
-        // The component might have unmounted while waiting for the API response
-        if (isMounted && result.success) {
+        const result = await fetchMembersList(debouncedSearchTerm);
+        if (result.success) {
           setProposers(result.data);
           setIsDropdownOpen(true);
         }
       } catch (error) {
-        if (isMounted) console.error("Error fetching proposers", error);
+        console.error("Error fetching proposers", error);
       } finally {
-        // 4. Safely stop the loading spinner
-        if (isMounted) {
-          setLoadingProposers(false);
-        }
+        setLoadingProposers(false);
       }
-    }, 500);
-
-    // Cleanup function: runs when the component unmounts OR before the next effect runs
-    return () => {
-      isMounted = false; // Mark component as unmounted so pending promises don't update state
-      clearTimeout(delayDebounceFn); // Clear the timeout
     };
-  }, [searchTerm]);
 
+    fetchProposers();
+  }, [debouncedSearchTerm, selectedProposerName]);
+
+  // ✅ UPDATED: Selection Logic
   const handleSelectProposer = (member) => {
     setValue("proposer_member_id", member.id, { shouldValidate: true });
+    setSelectedProposerName(member.name); // Remember exactly what we clicked
     setSearchTerm(member.name);
-    setIsDropdownOpen(false); 
+    setProposers([]); // Clear the list
+    setIsDropdownOpen(false); // Force close
   };
 
   const handleFileChange = (e) => {
@@ -147,9 +134,7 @@ export default function MembershipForm() {
     }
   };
 
-  // Validated Submit Handler
   const onSubmit = async (data) => {
-    // Safety check for files
     if (!files.applicant_photo || !files.applicant_signature || !files.aadhar_front || !files.aadhar_back) {
       toast.error("कृपया सभी आवश्यक तस्वीरें अपलोड करें। (Please upload all photos and signatures)");
       return;
@@ -158,17 +143,13 @@ export default function MembershipForm() {
     setLoading(true); 
     const formDataToSend = new FormData();
     
-    // 1. Append Validated Text Fields
     Object.keys(data).forEach(key => {
       if (data[key] !== undefined && data[key] !== "") { 
         formDataToSend.append(key, data[key]);
       }
     });
 
-    // 2. Append Default Membership Type
     formDataToSend.append("membership_type", "LIFETIME");
-    
-    // 3. Append Files
     formDataToSend.append('applicant_photo', files.applicant_photo);
     formDataToSend.append('applicant_signature', files.applicant_signature);
     formDataToSend.append('aadhar_front', files.aadhar_front);
@@ -202,7 +183,6 @@ export default function MembershipForm() {
             <p className="text-sm text-gray-500 mt-1 font-semibold text-orange-600">सदस्यता प्रकार: आजीवन (Lifetime)</p>
           </div>
           
-          {/* Passport Photo Box */}
          <div className="relative">
             <label className="cursor-pointer flex flex-col items-center justify-center w-32 h-40 border-2 border-dashed border-gray-400 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors overflow-hidden">
               {previews.applicant_photo ? (
@@ -220,8 +200,7 @@ export default function MembershipForm() {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="px-8 py-8 space-y-8">
-          
-          {/* Section 1: Personal Details */}
+          <fieldset disabled={loading} className="space-y-8 opacity-100 disabled:opacity-70 transition-opacity duration-300">
           <div className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="block text-sm font-bold text-gray-700 mb-1">पूर्ण नांव <span className="text-gray-400 font-normal">(Full Name)</span> *</label>
@@ -273,7 +252,6 @@ export default function MembershipForm() {
               </select>
             </div>
 
-            {/* Aadhar Uploads (Managed by Local State) */}
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">आधार कार्ड (Front) *</label>
               <label className="cursor-pointer flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-400 rounded-md bg-white hover:bg-gray-50 transition-colors overflow-hidden">
@@ -301,7 +279,6 @@ export default function MembershipForm() {
 
           <hr className="border-gray-200" />
 
-          {/* Section 2: Contact & Address */}
           <div className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-2">
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">मोबाईल <span className="text-gray-400 font-normal">(Mobile Number)</span> *</label>
@@ -333,10 +310,9 @@ export default function MembershipForm() {
             <select 
               {...register("is_from_raipur")}
               onChange={(e) => {
-                 // Call react-hook-form's register onChange to keep it synced
                  setValue("is_from_raipur", e.target.value, { shouldValidate: true });
                  if (e.target.value === "false") {
-                   setValue("region", ""); // Reset region if No
+                   setValue("region", ""); 
                  }
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 shadow-sm bg-white"
@@ -361,7 +337,6 @@ export default function MembershipForm() {
 
           <hr className="border-gray-200 mt-6" />
 
-          {/* Section 3: Professional Details */}
           <div className="grid grid-cols-1 gap-y-6 gap-x-6 sm:grid-cols-2 mt-6">
             <div className="sm:col-span-1">
               <label className="block text-sm font-bold text-gray-700 mb-1">शैक्षणिक योग्यता <span className="text-gray-400 font-normal">(Education)</span> *</label>
@@ -381,7 +356,6 @@ export default function MembershipForm() {
             </div>
           </div>
 
-          {/* Section 4: Proposer / Reference */}
           <div className="bg-orange-50/50 p-6 rounded-md border border-orange-200 mt-8">
             <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-orange-200 pb-2">
               अनुमोदक <span className="text-gray-500 font-normal text-sm">(Proposer / Reference)</span>
@@ -392,13 +366,19 @@ export default function MembershipForm() {
                 आजीव सदस्याचे नाव <span className="text-gray-400 font-normal">(Search Proposer Name)</span> *
               </label>
               
+              {/* ✅ UPDATED INPUT: AutoComplete OFF and better clear logic */}
               <input
                 type="text"
+                autoComplete="off"
                 value={searchTerm}
                 onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  if (e.target.value === "") {
+                  const newValue = e.target.value;
+                  setSearchTerm(newValue);
+                  
+                  // If the user modifies the text, clear their actual selection ID!
+                  if (newValue !== selectedProposerName) {
                     setValue("proposer_member_id", "", { shouldValidate: true });
+                    setSelectedProposerName(""); 
                   }
                 }}
                 placeholder="Type member name to search..."
@@ -426,7 +406,6 @@ export default function MembershipForm() {
             </div>
           </div>
 
-          {/* Declaration and Signature Section */}
           <div className="bg-gray-50 p-6 rounded-md border border-gray-200 mt-8 flex flex-col sm:flex-row justify-between items-center sm:items-end gap-6">
             
             <div className="flex-1">
@@ -450,7 +429,6 @@ export default function MembershipForm() {
               </div>
             </div>
 
-            {/* Signature Upload Box */}
            <div className="relative shrink-0">
               <label className="cursor-pointer flex flex-col items-center justify-center w-48 h-24 border-2 border-dashed border-gray-400 rounded-md bg-white hover:bg-gray-100 transition-colors overflow-hidden">
                 {previews.applicant_signature ? (
@@ -466,7 +444,6 @@ export default function MembershipForm() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="pt-4">
             <button
               type="submit"
@@ -478,6 +455,7 @@ export default function MembershipForm() {
               {loading ? "Uploading files... (कृपया प्रतीक्षा करा...)" : "Submit Application (अर्ज जमा करा)"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </div>

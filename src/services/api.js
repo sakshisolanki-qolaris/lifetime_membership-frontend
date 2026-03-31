@@ -74,24 +74,13 @@ export const adminLogin = async (phone, password) => {
 
 // 2. Fetch All Applicants (Protected)
 export const fetchAllApplicants = async () => {
-  const token = localStorage.getItem('adminToken');
-  
   // Update '/applicants' to match your backend route that lists everyone
-  const response = await apiClient.get('/applicants', {
-    headers: {
-      Authorization: `Bearer ${token}` 
-    }
-  });
+  const response = await apiClient.get('/applicants');
   return response.data;
 };
 
 export const fetchApplicantById = async (id) => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.get(`/applicants/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+  const response = await apiClient.get(`/applicants/${id}`);
   return response.data;
 };
 
@@ -103,47 +92,34 @@ export const resubmitApplication = async (id, formData) => {
 };
 
 export const promoteApplicant = async (applicant_id, registration_number) => {
-  const token = localStorage.getItem('adminToken');
   const response = await apiClient.post('/admins/promote', 
-    { applicant_id, registration_number },
-    { headers: { Authorization: `Bearer ${token}` } }
+    { applicant_id, registration_number }
   );
   return response.data;
 };
 
 export const fetchAllMembers = async () => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.get('/admins/all-members', {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const response = await apiClient.get('/admins/all-members');
   return response.data;
 };
 
 
 export const toggleMemberStatus = async (id) => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.patch(`/admins/members/${id}/status`, {}, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const response = await apiClient.patch(`/admins/members/${id}/status`, {});
   return response.data;
 };
 
 
 //exceptional
 export const downloadIdCard = async (id) => {
-  const token = localStorage.getItem('adminToken');
   const response = await apiClient.get(`/admins/members/${id}/id-card`, {
-    headers: { Authorization: `Bearer ${token}` },
-    responseType: 'blob' // Required for handling binary files
+    responseType: 'blob' // Keep this! Required for handling binary files
   });
   return response.data;
 };
 
 export const updateMembershipFee = async (amount) => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.patch('/admins/settings/update-fee', { amount }, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const response = await apiClient.patch('/admins/settings/update-fee', { amount });
   return response.data;
 };
 
@@ -151,7 +127,6 @@ export const updateMembershipFee = async (amount) => {
 export const fetchCurrentFee = async () => {
   try {
     const response = await apiClient.get('/payments/fee');
-    console.log("Fee API Response:", response.data);
     return response.data;
   } catch (err) {
     console.error("Fee API Error:", err);
@@ -162,19 +137,13 @@ export const fetchCurrentFee = async () => {
 
 // Admin: Edit Applicant Details manually
 export const editApplicantByAdmin = async (id, updateData) => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.put(`/admins/applicants/${id}/edit`, updateData, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const response = await apiClient.put(`/admins/applicants/${id}/edit`, updateData);
   return response.data;
 };
 
 // Admin: Approve or Reject Application
 export const reviewApplicantByAdmin = async (id, action) => {
-  const token = localStorage.getItem('adminToken');
-  const response = await apiClient.post(`/admins/applicants/${id}/review`, { action }, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const response = await apiClient.post(`/admins/applicants/${id}/review`, { action });
   return response.data;
 };
 
@@ -182,5 +151,11 @@ export const reviewApplicantByAdmin = async (id, action) => {
 // Fetch active regions for the dropdown
 export const fetchActiveRegions = async () => {
   const response = await apiClient.get('/regions');
+  return response.data;
+};
+
+
+export const fetchMemberById = async (id) => {
+  const response = await apiClient.get(`/admins/members/${id}`);
   return response.data;
 };
