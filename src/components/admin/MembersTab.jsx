@@ -9,7 +9,7 @@ export default function MembersTab() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // 🚀 TanStack Query for Fetching Members
+
   const { data: members = [], isLoading: loading } = useQuery({
     queryKey: ["members"],
     queryFn: async () => {
@@ -21,7 +21,7 @@ export default function MembersTab() {
     }
   });
 
-  // 🚀 TanStack Query for Updating Status
+
   const toggleMutation = useMutation({
     mutationFn: (id) => toggleMemberStatus(id),
     onSuccess: (response) => {
@@ -35,11 +35,11 @@ export default function MembersTab() {
   });
 
   const handleToggleMemberStatus = (id, e) => {
-    e.stopPropagation(); // Prevents the row click event when toggling status
+    e.stopPropagation(); 
     toggleMutation.mutate(id);
   };
 
-  // Fetch full details when a row is clicked
+ 
   const handleRowClick = async (memberSummary) => {
     setLoadingDetails(true);
     try {
@@ -121,7 +121,7 @@ export default function MembersTab() {
         </table>
       </div>
 
-      {/* Render the Modal if a member is selected */}
+
       {selectedMember && (
         <MemberDetailModal 
           selectedMember={selectedMember} 

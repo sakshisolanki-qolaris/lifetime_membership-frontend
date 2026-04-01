@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
-    // If it's already loaded, resolve immediately
+    
     if (window.Razorpay) {
       resolve(true);
       return;
@@ -34,11 +34,11 @@ export default function PaymentPage() {
   const [pageLoading, setPageLoading] = useState(true);
 
   // --- FEE STATES ---
-  const [baseFee, setBaseFee] = useState(1500); // Default base membership fee
-  const REGISTRATION_FEE = 10; // Fixed registration fee
-  const totalAmount = baseFee + REGISTRATION_FEE; // Calculated total
+  const [baseFee, setBaseFee] = useState(1500); 
+  const REGISTRATION_FEE = 10; 
+  const totalAmount = baseFee + REGISTRATION_FEE; 
   
-  // --- NEW STATES FOR THE 2-STEP FLOW ---
+  
   const [step, setStep] = useState('review'); // 'review' or 'payment'
   const [applicantDetails, setApplicantDetails] = useState(null);
 
@@ -50,16 +50,16 @@ export default function PaymentPage() {
     
     const initializePage = async () => {
       try {
-        // 1. Fetch Applicant Details for the Review Step
+        
         const appRes = await fetchApplicantById(applicant_id);
         setApplicantDetails(appRes.data || appRes);
 
-        // 2. Fetch Dynamic Base Fee (This is what the admin changes, e.g., 1500 or 1600)
+        
         const feeRes = await fetchCurrentFee();
         if (feeRes?.data?.fee) setBaseFee(feeRes.data.fee); 
         else if (feeRes?.fee) setBaseFee(feeRes.fee);      
 
-        // 3. Check if already paid
+       
         const statusRes = await checkPaymentStatus(applicant_id);
         if (statusRes.isPaid) setIsPaid(true);
 
@@ -91,16 +91,16 @@ export default function PaymentPage() {
 
       const orderRes = await createPaymentOrder(applicant_id);
       
-      // FIX: Destructure the exact keys coming from your backend (camelCase)
+      
       const { orderId, amountInPaise, currency, keyId } = orderRes.data;
 
       const options = {
-        key: keyId, // Use keyId from backend
-        amount: amountInPaise, // Use amountInPaise from backend
+        key: keyId, 
+        amount: amountInPaise, 
         currency: currency,
         name: "Maharashtra Mandal",
         description: "Lifetime Membership + Registration Fee",
-        order_id: orderId, // Razorpay SDK *requires* snake_case 'order_id' here, but we pass our camelCase 'orderId' variable into it
+        order_id: orderId, 
         theme: { color: "#ea580c" }, 
         
         handler: async function (response) {

@@ -49,7 +49,7 @@ export default function MemberDetailModal({ selectedMember, onClose }) {
   );
 }
 
-// Reusable UI block for displaying fields
+
 const DetailItem = ({ label, value }) => (
   <div>
     <p className="text-xs font-bold text-indigo-600 mb-1 uppercase tracking-wide">{label}</p>

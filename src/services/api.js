@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Include cookies in requests if your backend uses them for sessions
+  withCredentials: true, 
 });
 
 apiClient.interceptors.response.use(
@@ -22,7 +22,6 @@ apiClient.interceptors.response.use(
 );
 
 export const submitApplication = async (formData) => {
-  // We use multipart/form-data because of the file uploads (multer on backend)
   const response = await apiClient.post('/applicants', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -35,7 +34,7 @@ export const fetchApprovalDetails = async (token, role) => {
 };
 
 export const submitApproval = async (role, token, action) => {
-  // role should be 'member' or 'president' matching your backend routes
+ 
   const response = await apiClient.post(`/approvals/${role.toLowerCase()}`, { token, action });
   return response.data;
 };
@@ -56,7 +55,7 @@ export const fetchMembersList = async (searchTerm = "") => {
   return response.data; 
 };
 
-// Checks if the applicant has already paid
+
 export const checkPaymentStatus = async (applicant_id) => {
   const response = await apiClient.get(`/payments/status/${applicant_id}`);
   return response.data;
@@ -64,17 +63,17 @@ export const checkPaymentStatus = async (applicant_id) => {
 
 // --- ADMIN API CALLS ---
 
-// 1. Admin Login
+
 export const adminLogin = async (phone, password) => {
-  // Update '/auth/login' to match your actual backend admin login route
+  
   const response = await apiClient.post('/admins/login', { phone_number: phone, 
     password: password});
   return response.data;
 };
 
-// 2. Fetch All Applicants (Protected)
+
 export const fetchAllApplicants = async () => {
-  // Update '/applicants' to match your backend route that lists everyone
+ 
   const response = await apiClient.get('/applicants');
   return response.data;
 };
@@ -110,10 +109,10 @@ export const toggleMemberStatus = async (id) => {
 };
 
 
-//exceptional
+
 export const downloadIdCard = async (id) => {
   const response = await apiClient.get(`/admins/members/${id}/id-card`, {
-    responseType: 'blob' // Keep this! Required for handling binary files
+    responseType: 'blob' 
   });
   return response.data;
 };
@@ -130,25 +129,25 @@ export const fetchCurrentFee = async () => {
     return response.data;
   } catch (err) {
     console.error("Fee API Error:", err);
-    return { fee: 1510 }; // Fallback based on your backend default
+    return { fee: 1510 }; 
   }
 };
 
 
-// Admin: Edit Applicant Details manually
+
 export const editApplicantByAdmin = async (id, updateData) => {
   const response = await apiClient.put(`/admins/applicants/${id}/edit`, updateData);
   return response.data;
 };
 
-// Admin: Approve or Reject Application
+
 export const reviewApplicantByAdmin = async (id, action) => {
   const response = await apiClient.post(`/admins/applicants/${id}/review`, { action });
   return response.data;
 };
 
 
-// Fetch active regions for the dropdown
+
 export const fetchActiveRegions = async () => {
   const response = await apiClient.get('/regions');
   return response.data;

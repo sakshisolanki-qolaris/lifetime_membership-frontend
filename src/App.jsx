@@ -1,15 +1,15 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { ErrorBoundary } from 'react-error-boundary'; // ✅ Import the boundary
+import { ErrorBoundary } from 'react-error-boundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // Cache data for 5 minutes without refetching
-      refetchOnWindowFocus: false, // Don't refetch every time the user clicks the browser tab
+      staleTime: 1000 * 60 * 5, 
+      refetchOnWindowFocus: false, 
     },
   },
 });
@@ -25,7 +25,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const EditApplication = lazy(() => import('./pages/EditApplication'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
-// 2. Global Auth Listener
+
 const GlobalAuthListener = () => {
   const navigate = useNavigate();
   useEffect(() => {
@@ -38,15 +38,14 @@ const GlobalAuthListener = () => {
   return null;
 };
 
-// 3. Page Loader fallback
+
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
   </div>
 );
 
-// 4. ✅ Create the Error Fallback UI
-// This is what users will see if the app crashes
+
 const ErrorFallbackUI = ({ error, resetErrorBoundary }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
@@ -77,7 +76,7 @@ function App() {
         {/* ✅ Wrap everything inside the boundary */}
         <ErrorBoundary 
           FallbackComponent={ErrorFallbackUI}
-          onReset={() => window.location.href = '/'} // Send them home if they click reload
+          onReset={() => window.location.href = '/'} 
         >
           <Suspense fallback={<PageLoader />}>
             <Routes>

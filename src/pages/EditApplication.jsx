@@ -11,11 +11,9 @@ export default function EditApplication() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // ADDED MISSING REGIONS STATE
   const [regions, setRegions] = useState([]);
 
-  // FIXED INITIALIZATION: Must be snake_case to match the input 'name' attributes 
-  // and what the backend API expects upon form submission.
+  
   const [formData, setFormData] = useState({
     full_name: "",
     father_or_husband_name: "",
@@ -61,7 +59,7 @@ export default function EditApplication() {
         const result = await fetchApplicantById(id);
         const data = result.data || result;
         
-        // FIXED MAPPING: Read from backend camelCase, store in frontend snake_case
+        
         setFormData({
           full_name: data.fullName || "",
           father_or_husband_name: data.fatherOrHusbandName || "",
@@ -82,12 +80,12 @@ export default function EditApplication() {
           proposer_member_id: data.proposerMemberId || (data.proposer ? data.proposer.id : "")
         });
 
-        // Populate proposer search term
+        
         if (data.proposer) {
           setSearchTerm(data.proposer.name);
         }
 
-        // FIXED FILES: Use camelCase fileType and minioUrl to read from backend
+        
         if (data.files) {
           const photoUrl = data.files.find(f => f.fileType === 'PHOTO')?.minioUrl;
           const sigUrl = data.files.find(f => f.fileType === 'SIGNATURE')?.minioUrl;
@@ -108,8 +106,7 @@ export default function EditApplication() {
       }
     };
     loadData();
-  }, [id]); // MINIO_BASE_URL removed from dependencies since it's a constant outside the component
-
+  }, [id]); 
   useEffect(() => {
     const loadRegions = async () => {
       try {
@@ -179,14 +176,13 @@ export default function EditApplication() {
     Object.keys(formData).forEach(key => {
       if (formData[key] === "") {
          if (key === 'marriage_date' || key === 'office_address' || key === 'blood_group' || key === 'region') {
-            // Skip optional empty fields to prevent backend validation errors
+            
          }
        } else if (formData[key] !== null) { 
          formDataToSend.append(key, formData[key]);
        }
     });
     
-    // Only append files if user selected NEW ones during editing
     if (files.applicant_photo) formDataToSend.append('applicant_photo', files.applicant_photo);
     if (files.applicant_signature) formDataToSend.append('applicant_signature', files.applicant_signature);
     if (files.aadhar_front) formDataToSend.append('aadhar_front', files.aadhar_front);

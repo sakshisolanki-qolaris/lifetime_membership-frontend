@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import useDebounce from "../hooks/useDebounce";
 
-// Zod Validation Schema
 const applicationSchema = z.object({
   full_name: z.string().min(2, "पूरा नाम आवश्यक है (Full name is required)"),
   father_or_husband_name: z.string().min(2, "पिता/पति का नाम आवश्यक है"),
@@ -55,7 +54,7 @@ export default function MembershipForm() {
   // Local State
   const [proposers, setProposers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProposerName, setSelectedProposerName] = useState(""); // ✅ NEW: Tracks the exact clicked name
+  const [selectedProposerName, setSelectedProposerName] = useState(""); 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loadingProposers, setLoadingProposers] = useState(false);
   const [regions, setRegions] = useState([]);
@@ -90,9 +89,9 @@ export default function MembershipForm() {
     loadRegions();
   }, []);
 
-  // ✅ UPDATED: Search Logic
+
   useEffect(() => {
-    // DO NOT fetch if the box is empty, OR if the text perfectly matches the user we just clicked!
+   
     if (debouncedSearchTerm.trim() === "" || debouncedSearchTerm === selectedProposerName) {
       setProposers([]);
       setIsDropdownOpen(false);
@@ -117,13 +116,13 @@ export default function MembershipForm() {
     fetchProposers();
   }, [debouncedSearchTerm, selectedProposerName]);
 
-  // ✅ UPDATED: Selection Logic
+ 
   const handleSelectProposer = (member) => {
     setValue("proposer_member_id", member.id, { shouldValidate: true });
-    setSelectedProposerName(member.name); // Remember exactly what we clicked
+    setSelectedProposerName(member.name); 
     setSearchTerm(member.name);
-    setProposers([]); // Clear the list
-    setIsDropdownOpen(false); // Force close
+    setProposers([]); 
+    setIsDropdownOpen(false); 
   };
 
   const handleFileChange = (e) => {
@@ -375,7 +374,7 @@ export default function MembershipForm() {
                   const newValue = e.target.value;
                   setSearchTerm(newValue);
                   
-                  // If the user modifies the text, clear their actual selection ID!
+                 
                   if (newValue !== selectedProposerName) {
                     setValue("proposer_member_id", "", { shouldValidate: true });
                     setSelectedProposerName(""); 

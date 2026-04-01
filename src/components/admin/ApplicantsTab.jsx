@@ -8,7 +8,6 @@ export default function ApplicantsTab() {
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // 🚀 TanStack Query replaces useEffect, useState, and manual loading states
   const { 
     data: applicants = [], 
     isLoading: loading, 

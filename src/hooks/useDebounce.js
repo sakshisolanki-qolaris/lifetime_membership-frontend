@@ -9,21 +9,18 @@ import { useState, useEffect } from "react";
  * @returns {any} The debounced value.
  */
 export default function useDebounce(value, delay) {
-  // State and setters for debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    // Update debounced value after the specified delay
+  
     const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
-    // Cancel the timeout if value changes (also on component unmount)
-    // This is how we prevent memory leaks and redundant API calls!
     return () => {
       clearTimeout(handler);
     };
-  }, [value, delay]); // Only re-call effect if value or delay changes
+  }, [value, delay]); 
 
   return debouncedValue;
 }

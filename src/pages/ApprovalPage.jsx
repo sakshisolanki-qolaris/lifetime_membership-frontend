@@ -3,7 +3,6 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import { fetchApprovalDetails, submitApproval } from '../services/api';
 import toast from 'react-hot-toast';
 
-// Base URL for your local MinIO server so images can load
 const MINIO_BASE_URL = import.meta.env.VITE_MINIO_URL; 
 
 export default function ApprovalPage() {
@@ -18,10 +17,10 @@ export default function ApprovalPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   
-  // --- NEW: State for Full-Screen Image Preview ---
+
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Fetch data on load
+  
   useEffect(() => {
     if (!token) {
       toast.error("Invalid approval link. Token is missing.");
@@ -71,11 +70,11 @@ export default function ApprovalPage() {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8 font-sans">
       
-      {/* --- NEW: Full Screen Image Preview Modal --- */}
+    
       {previewImage && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm transition-opacity"
-          onClick={() => setPreviewImage(null)} // Clicking the background closes it
+          onClick={() => setPreviewImage(null)} 
         >
           <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center">
             {/* Close Button */}
@@ -92,7 +91,7 @@ export default function ApprovalPage() {
               src={previewImage} 
               alt="Document Full Size" 
               className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()} // Prevent clicking the image from closing the modal
+              onClick={(e) => e.stopPropagation()} 
             />
           </div>
         </div>
