@@ -64,7 +64,8 @@ export default function ApplicantsTab() {
       {applicants.length === 0 ? (
         <div className="p-16 text-center text-gray-500 font-medium">कोई आवेदन नहीं मिला।</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:hidden">
+          {/* 5. FIX: Added print:hidden to the parent div so the table disappears from the print layout */}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-slate-50">
               <tr>

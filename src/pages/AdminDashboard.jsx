@@ -16,8 +16,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 sm:p-8 font-sans relative print:bg-white print:p-0">
-      <div className="max-w-7xl mx-auto print:hidden">
-        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-md mb-6 border-t-4 border-orange-500">
+      {/* 1. FIX: Removed print:hidden from this wrapper so the modal can print */}
+      <div className="max-w-7xl mx-auto">
+        
+        {/* 2. FIX: Added print:hidden here to hide the top header when printing */}
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-md mb-6 border-t-4 border-orange-500 print:hidden">
           <div className="flex items-center space-x-4 mb-4 sm:mb-0">
             <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shadow-sm">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +37,8 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        <div className="flex space-x-2 mb-6">
+        {/* 3. FIX: Added print:hidden here to hide the tabs when printing */}
+        <div className="flex space-x-2 mb-6 print:hidden">
           <button onClick={() => setActiveTab("applicants")} className={`px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm ${activeTab === "applicants" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
             आवेदक (Applicants)
           </button>
@@ -46,7 +50,8 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[400px]">
+        {/* 4. FIX: Removed shadows and borders during print to keep the paper clean */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[400px] print:shadow-none print:border-none print:min-h-0 print:overflow-visible">
           {activeTab === "applicants" && <ApplicantsTab />}
           {activeTab === "members" && <MembersTab />}
           {activeTab === "settings" && <SettingsTab />}
