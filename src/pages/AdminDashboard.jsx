@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import ApplicantsTab from "../components/admin/ApplicantsTab";
 import MembersTab from "../components/admin/MembersTab";
 import SettingsTab from "../components/admin/SettingsTab";
-
+import DashboardTab from "../components/admin/DashboardTab";
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("applicants");
+ const [activeTab, setActiveTab] = useState("dashboard");
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   };
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 sm:p-8 font-sans relative print:bg-white print:p-0">
       {/* 1. FIX: Removed print:hidden from this wrapper so the modal can print */}
       <div className="max-w-7xl mx-auto">
@@ -37,8 +38,17 @@ export default function AdminDashboard() {
           </button>
         </div>
 
+{/* Tab Navigation Menu */}
+      
+
         {/* 3. FIX: Added print:hidden here to hide the tabs when printing */}
         <div className="flex space-x-2 mb-6 print:hidden">
+             <button 
+            onClick={() => setActiveTab("dashboard")} 
+            className={`px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm ${activeTab === "dashboard" ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}
+          >
+            डैशबोर्ड (Overview)
+          </button>
           <button onClick={() => setActiveTab("applicants")} className={`px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm ${activeTab === "applicants" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
             आवेदक (Applicants)
           </button>
@@ -52,6 +62,7 @@ export default function AdminDashboard() {
 
         {/* 4. FIX: Removed shadows and borders during print to keep the paper clean */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 min-h-[400px] print:shadow-none print:border-none print:min-h-0 print:overflow-visible">
+          {activeTab === "dashboard" && <DashboardTab />}
           {activeTab === "applicants" && <ApplicantsTab />}
           {activeTab === "members" && <MembersTab />}
           {activeTab === "settings" && <SettingsTab />}

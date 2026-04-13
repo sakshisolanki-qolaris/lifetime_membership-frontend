@@ -9,24 +9,22 @@ export default function MembersTab() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-
   const { data: members = [], isLoading: loading } = useQuery({
     queryKey: ["members"],
     queryFn: async () => {
       const result = await fetchAllMembers();
-      return result.data || result || [];
+      // FIX: बैकएंड { data: { members: [...], total: X } } भेजता है, इसलिए .members एक्सेस करना जरूरी है
+      return result.data?.members || result.data || result || [];
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "डेटा लोड करने में विफल (Failed to load).");
     }
   });
 
-
   const toggleMutation = useMutation({
     mutationFn: (id) => toggleMemberStatus(id),
     onSuccess: (response) => {
       toast.success(response?.message || "स्थिति अपडेट की गई (Status Updated)");
-      // Automatically refresh the members list in the background!
       queryClient.invalidateQueries({ queryKey: ["members"] });
     },
     onError: (error) => {
@@ -39,7 +37,6 @@ export default function MembersTab() {
     toggleMutation.mutate(id);
   };
 
- 
   const handleRowClick = async (memberSummary) => {
     setLoadingDetails(true);
     try {
@@ -67,7 +64,6 @@ export default function MembersTab() {
   return (
     <>
       <div className="overflow-x-auto relative">
-        {/* Shows a loading spinner over the table while fetching details */}
         {loadingDetails && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex items-center justify-center">
             <svg className="animate-spin h-8 w-8 text-indigo-600" viewBox="0 0 24 24">
@@ -81,8 +77,10 @@ export default function MembersTab() {
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">सदस्य (Member)</th>
+              {/* FIX: नया कॉलम जोड़ा गया */}
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">जन्म तिथि (DOB)</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">भूमिका (Role)</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">सक्रिय (Active Toggle)</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">सक्रिय (Active)</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
@@ -96,6 +94,12 @@ export default function MembersTab() {
                   <div className="font-bold text-gray-900 group-hover:text-indigo-700">{member.name}</div>
                   <div className="text-sm text-gray-500 mt-1">{member.mobileNumber}</div>
                 </td>
+                
+                {/* FIX: जन्म तिथि (Date of Birth) दिखाने के लिए नया सेल */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                  {member.dateOfBirth ? new Date(member.dateOfBirth).toLocaleDateString('en-IN') : 'N/A'}
+                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-3 py-1 rounded-md text-xs font-bold ${member.role === "PRESIDENT" ? "bg-purple-100 text-purple-800" : "bg-indigo-50 text-indigo-700"}`}>
                     {member.role === "PRESIDENT" ? "अध्यक्ष (President)" : "सदस्य (Member)"}
@@ -108,7 +112,6 @@ export default function MembersTab() {
                       disabled={member.role === "PRESIDENT" || toggleMutation.isPending}
                       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${member.isActive ? "bg-green-500" : "bg-gray-300"}`}
                       role="switch"
-                      aria-checked={member.isActive}
                     >
                       <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${member.isActive ? "translate-x-5" : "translate-x-0"}`} />
                     </button>
@@ -120,7 +123,6 @@ export default function MembersTab() {
           </tbody>
         </table>
       </div>
-
 
       {selectedMember && (
         <MemberDetailModal 

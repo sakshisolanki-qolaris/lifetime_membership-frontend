@@ -72,9 +72,11 @@ export const adminLogin = async (phone, password) => {
 };
 
 
-export const fetchAllApplicants = async () => {
- 
-  const response = await apiClient.get('/applicants');
+
+
+export const fetchAllApplicants = async (searchTerm = "") => {
+  // Add the ?search= query parameter to the URL
+  const response = await apiClient.get(`/applicants?search=${searchTerm}`);
   return response.data;
 };
 
@@ -97,8 +99,9 @@ export const promoteApplicant = async (applicant_id, registration_number) => {
   return response.data;
 };
 
-export const fetchAllMembers = async () => {
-  const response = await apiClient.get('/admins/all-members');
+export const fetchAllMembers = async (searchTerm = "") => {
+  // Add the ?search= query parameter to the URL
+  const response = await apiClient.get(`/admins/all-members?search=${searchTerm}`);
   return response.data;
 };
 
@@ -156,5 +159,61 @@ export const fetchActiveRegions = async () => {
 
 export const fetchMemberById = async (id) => {
   const response = await apiClient.get(`/admins/members/${id}`);
+  return response.data;
+};
+
+export const changeAdminPassword = async (currentPassword, newPassword) => {
+  const response = await apiClient.post('/admins/change-password', { 
+    currentPassword, 
+    newPassword 
+  });
+  return response.data;
+};
+
+
+export const fetchAllRegionsForAdmin = async () => {
+  const response = await apiClient.get('/regions/admin');
+  return response.data;
+};
+
+export const createRegionByAdmin = async (name) => {
+  const response = await apiClient.post('/regions/admin', { name });
+  return response.data;
+};
+
+export const toggleRegionByAdmin = async (id) => {
+  const response = await apiClient.patch(`/regions/admin/${id}/toggle`);
+  return response.data;
+};
+
+export const fetchDashboardStats = async (startDate, endDate) => {
+  let url = '/admins/dashboard-stats';
+  if (startDate && endDate) {
+    url += `?startDate=${startDate}&endDate=${endDate}`;
+  }
+  const response = await apiClient.get(url);
+  return response.data;
+};
+
+export const exportMembersReport = async (startDate, endDate) => {
+  let url = '/admins/dashboard-stats/export';
+  if (startDate && endDate) {
+    url += `?startDate=${startDate}&endDate=${endDate}`;
+  }
+  // responseType: 'blob' is crucial for downloading files
+  const response = await apiClient.get(url, { responseType: 'blob' });
+  return response.data;
+};
+
+
+// Add these at the bottom of your admin api calls
+
+export const forgotAdminPassword = async (email) => {
+  const response = await apiClient.post('/admins/forgot-password', { email });
+  return response.data;
+};
+
+export const resetAdminPassword = async (email, otp, newPassword) => {
+  const response = await apiClient.post('/admins/reset-password', { email, otp, newPassword });
   return response.data;
 };

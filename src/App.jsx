@@ -24,8 +24,9 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const EditApplication = lazy(() => import('./pages/EditApplication'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
-
-
+const AdminChangePassword = lazy(() => import('./pages/AdminChangePassword'));
+const AdminManageRegions = lazy(() => import('./pages/AdminManageRegions'));
+const AdminForgotPassword = lazy(() => import('./pages/AdminForgotPassword'));
 const GlobalAuthListener = () => {
   const navigate = useNavigate();
   useEffect(() => {
@@ -100,7 +101,26 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+                <Route 
+  path="/admin/change-password" 
+  element={
+    <ProtectedRoute>
+      <AdminChangePassword />
+    </ProtectedRoute>
+  } 
+/>
+<Route 
+  path="/admin/manage-regions" 
+  element={
+    <ProtectedRoute>
+      <AdminManageRegions />
+    </ProtectedRoute>
+  } 
+/>
+<Route path="/admin/login" element={<AdminLogin />} />
+<Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
               <Route path="*" element={<NotFoundPage />} />
+            
             </Routes>
           </Suspense>
         </ErrorBoundary>
