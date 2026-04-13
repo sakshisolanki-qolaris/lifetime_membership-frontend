@@ -54,7 +54,7 @@ export default function DashboardTab() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const blob = await exportMembersReport(dateRange.startDate, dateRange.endDate);
+      const blob  = await exportMembersReport(dateRange.startDate, dateRange.endDate);
       
       // Create a link element, hide it, direct it toward the blob, and then 'click' it
       const url = window.URL.createObjectURL(new Blob([blob]));
