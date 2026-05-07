@@ -7,24 +7,49 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+
+# Build folders
+dist/
+dist-ssr/
+build/
+
+# Coverage
+coverage/
+
+# SonarQube
+.sonar/
+.scannerwork/
+sonar-project.properties
+sonar-report.json
+
+# Local environment files
 *.local
+.env
+.env.local
+.env.development
+.env.production
+.env.test
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+
+# Windows files
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
+# Temporary files
+tmp/
+temp/
 
-.env
-.env.local
-.env.development
-.env.production
+# Optional cache files
+.cache/
+.eslintcache

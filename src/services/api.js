@@ -1,60 +1,71 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, 
+  withCredentials: true,
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    const isAuthError =
+      error.response?.status === 401 || error.response?.status === 403;
+
+    const isLoginRequest = error.config?.url?.includes("/login");
+
+    if (isAuthError && !isLoginRequest) {
       console.warn("Session expired or unauthorized. Logging out...");
-      // Clear UI flags instead of the token
-      localStorage.removeItem('adminLoggedIn'); 
-      localStorage.removeItem('adminUser');
-      window.location.href = '/admin/login';
+
+      localStorage.removeItem("adminLoggedIn");
+      localStorage.removeItem("adminUser");
+
+      globalThis.location.href = "/admin/login";
     }
+
     return Promise.reject(error);
-  }
+  },
 );
 
 export const submitApplication = async (formData) => {
-  const response = await apiClient.post('/applicants', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const response = await apiClient.post("/applicants", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
 
 export const fetchApprovalDetails = async (token, role) => {
-  const response = await apiClient.get(`/approvals/verify/${token}?role=${role}`);
+  const response = await apiClient.get(
+    `/approvals/verify/${token}?role=${role}`,
+  );
   return response.data;
 };
 
 export const submitApproval = async (role, token, action) => {
- 
-  const response = await apiClient.post(`/approvals/${role.toLowerCase()}`, { token, action });
+  const response = await apiClient.post(`/approvals/${role.toLowerCase()}`, {
+    token,
+    action,
+  });
   return response.data;
 };
 
 export const createPaymentOrder = async (applicant_id) => {
-  const response = await apiClient.post('/payments/create-order', { applicant_id });
+  const response = await apiClient.post("/payments/create-order", {
+    applicant_id,
+  });
   return response.data;
 };
 
 export const verifyPayment = async (paymentDetails) => {
-  const response = await apiClient.post('/payments/verify', paymentDetails);
+  const response = await apiClient.post("/payments/verify", paymentDetails);
   return response.data;
 };
 
-
 export const fetchMembersList = async (searchTerm = "") => {
   const response = await apiClient.get(`/admins/members?search=${searchTerm}`);
-  return response.data; 
+  return response.data;
 };
-
 
 export const checkPaymentStatus = async (applicant_id) => {
   const response = await apiClient.get(`/payments/status/${applicant_id}`);
@@ -63,16 +74,13 @@ export const checkPaymentStatus = async (applicant_id) => {
 
 // --- ADMIN API CALLS ---
 
-
 export const adminLogin = async (phone, password) => {
-  
-  const response = await apiClient.post('/admins/login', { phone_number: phone, 
-    password: password});
+  const response = await apiClient.post("/admins/login", {
+    phone_number: phone,
+    password: password,
+  });
   return response.data;
 };
-
-
-
 
 export const fetchAllApplicants = async (searchTerm = "") => {
   // Add the ?search= query parameter to the URL
@@ -87,75 +95,75 @@ export const fetchApplicantById = async (id) => {
 
 export const resubmitApplication = async (id, formData) => {
   const response = await apiClient.put(`/applicants/${id}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
 
 export const promoteApplicant = async (applicant_id, registration_number) => {
-  const response = await apiClient.post('/admins/promote', 
-    { applicant_id, registration_number }
-  );
+  const response = await apiClient.post("/admins/promote", {
+    applicant_id,
+    registration_number,
+  });
   return response.data;
 };
 
 export const fetchAllMembers = async (searchTerm = "") => {
   // Add the ?search= query parameter to the URL
-  const response = await apiClient.get(`/admins/all-members?search=${searchTerm}`);
+  const response = await apiClient.get(
+    `/admins/all-members?search=${searchTerm}`,
+  );
   return response.data;
 };
-
 
 export const toggleMemberStatus = async (id) => {
   const response = await apiClient.patch(`/admins/members/${id}/status`, {});
   return response.data;
 };
 
-
-
 export const downloadIdCard = async (id) => {
   const response = await apiClient.get(`/admins/members/${id}/id-card`, {
-    responseType: 'blob' 
+    responseType: "blob",
   });
   return response.data;
 };
 
 export const updateMembershipFee = async (amount) => {
-  const response = await apiClient.patch('/admins/settings/update-fee', { amount });
+  const response = await apiClient.patch("/admins/settings/update-fee", {
+    amount,
+  });
   return response.data;
 };
-
 
 export const fetchCurrentFee = async () => {
   try {
-    const response = await apiClient.get('/payments/fee');
+    const response = await apiClient.get("/payments/fee");
     return response.data;
   } catch (err) {
     console.error("Fee API Error:", err);
-    return { fee: 1510 }; 
+    return { fee: 1510 };
   }
 };
 
-
-
 export const editApplicantByAdmin = async (id, updateData) => {
-  const response = await apiClient.put(`/admins/applicants/${id}/edit`, updateData);
+  const response = await apiClient.put(
+    `/admins/applicants/${id}/edit`,
+    updateData,
+  );
   return response.data;
 };
-
 
 export const reviewApplicantByAdmin = async (id, action) => {
-  const response = await apiClient.post(`/admins/applicants/${id}/review`, { action });
+  const response = await apiClient.post(`/admins/applicants/${id}/review`, {
+    action,
+  });
   return response.data;
 };
-
-
 
 export const fetchActiveRegions = async () => {
-  const response = await apiClient.get('/regions');
+  const response = await apiClient.get("/regions");
   return response.data;
 };
-
 
 export const fetchMemberById = async (id) => {
   const response = await apiClient.get(`/admins/members/${id}`);
@@ -163,21 +171,20 @@ export const fetchMemberById = async (id) => {
 };
 
 export const changeAdminPassword = async (currentPassword, newPassword) => {
-  const response = await apiClient.post('/admins/change-password', { 
-    currentPassword, 
-    newPassword 
+  const response = await apiClient.post("/admins/change-password", {
+    currentPassword,
+    newPassword,
   });
   return response.data;
 };
 
-
 export const fetchAllRegionsForAdmin = async () => {
-  const response = await apiClient.get('/regions/admin');
+  const response = await apiClient.get("/regions/admin");
   return response.data;
 };
 
 export const createRegionByAdmin = async (name) => {
-  const response = await apiClient.post('/regions/admin', { name });
+  const response = await apiClient.post("/regions/admin", { name });
   return response.data;
 };
 
@@ -187,7 +194,7 @@ export const toggleRegionByAdmin = async (id) => {
 };
 
 export const fetchDashboardStats = async (startDate, endDate) => {
-  let url = '/admins/dashboard-stats';
+  let url = "/admins/dashboard-stats";
   if (startDate && endDate) {
     url += `?startDate=${startDate}&endDate=${endDate}`;
   }
@@ -196,24 +203,27 @@ export const fetchDashboardStats = async (startDate, endDate) => {
 };
 
 export const exportMembersReport = async (startDate, endDate) => {
-  let url = '/admins/dashboard-stats/export';
+  let url = "/admins/dashboard-stats/export";
   if (startDate && endDate) {
     url += `?startDate=${startDate}&endDate=${endDate}`;
   }
   // responseType: 'blob' is crucial for downloading files
-  const response = await apiClient.get(url, { responseType: 'blob' });
+  const response = await apiClient.get(url, { responseType: "blob" });
   return response.data;
 };
-
 
 // Add these at the bottom of your admin api calls
 
 export const forgotAdminPassword = async (email) => {
-  const response = await apiClient.post('/admins/forgot-password', { email });
+  const response = await apiClient.post("/admins/forgot-password", { email });
   return response.data;
 };
 
 export const resetAdminPassword = async (email, otp, newPassword) => {
-  const response = await apiClient.post('/admins/reset-password', { email, otp, newPassword });
+  const response = await apiClient.post("/admins/reset-password", {
+    email,
+    otp,
+    newPassword,
+  });
   return response.data;
 };

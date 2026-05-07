@@ -1,44 +1,48 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { ErrorBoundary } from 'react-error-boundary';
-import ProtectedRoute from './components/ProtectedRoute';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { Suspense, lazy, useEffect } from "react";
+import PropTypes from "prop-types";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { ErrorBoundary } from "react-error-boundary";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, 
-      refetchOnWindowFocus: false, 
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
     },
   },
 });
 
+const ApplicationForm = lazy(() => import("./pages/ApplicationForm"));
+const ApprovalPage = lazy(() => import("./pages/ApprovalPage"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const SuccessPage = lazy(() => import("./pages/SuccessPage"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const EditApplication = lazy(() => import("./pages/EditApplication"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const AdminChangePassword = lazy(() => import("./pages/AdminChangePassword"));
+const AdminManageRegions = lazy(() => import("./pages/AdminManageRegions"));
+const AdminForgotPassword = lazy(() => import("./pages/AdminForgotPassword"));
 
-// 1. Lazy loaded components
-const ApplicationForm = lazy(() => import('./pages/ApplicationForm'));
-const ApprovalPage = lazy(() => import('./pages/ApprovalPage'));
-const PaymentPage = lazy(() => import('./pages/PaymentPage'));
-const SuccessPage = lazy(() => import('./pages/SuccessPage'));
-const AdminLogin = lazy(() => import('./pages/AdminLogin'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const EditApplication = lazy(() => import('./pages/EditApplication'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
-const AdminChangePassword = lazy(() => import('./pages/AdminChangePassword'));
-const AdminManageRegions = lazy(() => import('./pages/AdminManageRegions'));
-const AdminForgotPassword = lazy(() => import('./pages/AdminForgotPassword'));
 const GlobalAuthListener = () => {
   const navigate = useNavigate();
+
   useEffect(() => {
     const handleUnauthorized = () => {
-      navigate('/admin/login', { replace: true });
+      navigate("/admin/login", { replace: true });
     };
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+
+    globalThis.addEventListener("auth:unauthorized", handleUnauthorized);
+
+    return () =>
+      globalThis.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, [navigate]);
+
   return null;
 };
-
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -46,12 +50,13 @@ const PageLoader = () => (
   </div>
 );
 
-
 const ErrorFallbackUI = ({ error, resetErrorBoundary }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Oops! Something went wrong.</h2>
+        <h2 className="text-2xl font-bold text-red-600 mb-4">
+          Oops! Something went wrong.
+        </h2>
         <p className="text-gray-600 mb-6 text-sm bg-gray-100 p-3 rounded overflow-auto text-left">
           {error.message}
         </p>
@@ -66,66 +71,81 @@ const ErrorFallbackUI = ({ error, resetErrorBoundary }) => {
   );
 };
 
+ErrorFallbackUI.propTypes = {
+  error: PropTypes.shape({
+    message: PropTypes.string.isRequired,
+  }).isRequired,
+  resetErrorBoundary: PropTypes.func.isRequired,
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <GlobalAuthListener />
-      <Toaster position="top-right" /> 
-      
-      <div className="min-h-screen bg-gray-50 text-gray-800">
-        {/* ✅ Wrap everything inside the boundary */}
-        <ErrorBoundary 
-          FallbackComponent={ErrorFallbackUI}
-          onReset={() => window.location.href = '/'} 
-        >
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<ApplicationForm />} />
-              <Route path="/apply" element={<ApplicationForm />} />
-              <Route path="/success" element={<SuccessPage />} />
-              
-              <Route path="/approve/member" element={<ApprovalPage />} />
-              <Route path="/approve/president" element={<ApprovalPage />} />
-              
-              <Route path="/payment" element={<PaymentPage />} />
-              <Route path="/recheck-application/:applicant_id" element={<PaymentPage />} />
-              <Route path="/edit-application/:id" element={<EditApplication />} />
+      <BrowserRouter>
+        <GlobalAuthListener />
+        <Toaster position="top-right" />
 
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route 
-                path="/admin/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-                <Route 
-  path="/admin/change-password" 
-  element={
-    <ProtectedRoute>
-      <AdminChangePassword />
-    </ProtectedRoute>
-  } 
-/>
-<Route 
-  path="/admin/manage-regions" 
-  element={
-    <ProtectedRoute>
-      <AdminManageRegions />
-    </ProtectedRoute>
-  } 
-/>
-<Route path="/admin/login" element={<AdminLogin />} />
-<Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
-              <Route path="*" element={<NotFoundPage />} />
-            
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-    </BrowserRouter>
+        <div className="min-h-screen bg-gray-50 text-gray-800">
+          {/* ✅ Wrap everything inside the boundary */}
+          <ErrorBoundary
+            FallbackComponent={ErrorFallbackUI}
+            onReset={() => (globalThis.location.href = "/")}
+          >
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<ApplicationForm />} />
+                <Route path="/apply" element={<ApplicationForm />} />
+                <Route path="/success" element={<SuccessPage />} />
+
+                <Route path="/approve/member" element={<ApprovalPage />} />
+                <Route path="/approve/president" element={<ApprovalPage />} />
+
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route
+                  path="/recheck-application/:applicant_id"
+                  element={<PaymentPage />}
+                />
+                <Route
+                  path="/edit-application/:id"
+                  element={<EditApplication />}
+                />
+
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/change-password"
+                  element={
+                    <ProtectedRoute>
+                      <AdminChangePassword />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/manage-regions"
+                  element={
+                    <ProtectedRoute>
+                      <AdminManageRegions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin/forgot-password"
+                  element={<AdminForgotPassword />}
+                />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
